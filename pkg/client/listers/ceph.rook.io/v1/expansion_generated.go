@@ -66,6 +66,14 @@ type CephObjectStoreListerExpansion interface{}
 // CephObjectStoreNamespaceLister.
 type CephObjectStoreNamespaceListerExpansion interface{}
 
+// CephObjectStoreRealmListerExpansion allows custom methods to be added to
+// CephObjectStoreRealmLister.
+type CephObjectStoreRealmListerExpansion interface{}
+
+// CephObjectStoreRealmNamespaceListerExpansion allows custom methods to be added to
+// CephObjectStoreRealmNamespaceLister.
+type CephObjectStoreRealmNamespaceListerExpansion interface{}
+
 // CephObjectStoreUserListerExpansion allows custom methods to be added to
 // CephObjectStoreUserLister.
 type CephObjectStoreUserListerExpansion interface{}

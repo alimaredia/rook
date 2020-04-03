@@ -1,0 +1,14 @@
+#################################################################################################################
+# Create a multisite realm for a collection of object stores
+#  kubectl create -f object-realm.yaml
+#################################################################################################################
+
+apiVersion: ceph.rook.io/v1
+kind: CephObjectStoreRealm
+metadata:
+  name: my-realm
+  namespace: rook-ceph
+spec:
+  rootPoolSize: 1
+  pull:
+    endpoint: http://my-realm-zone-a-objectstore-1:80

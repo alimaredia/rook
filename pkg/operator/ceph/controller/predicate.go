@@ -106,6 +106,20 @@ func WatchControllerPredicate() predicate.Funcs {
 					logger.Debugf("skipping resource %q update with unchanged spec", objNew.Name)
 				}
 
+			case *cephv1.CephObjectStoreRealm:
+				objNew := e.ObjectNew.(*cephv1.CephObjectStoreRealm)
+				logger.Debug("update event from the parent object CephObjectStoreRealm")
+				diff := cmp.Diff(objOld.Spec, objNew.Spec, resourceQtyComparer)
+				if diff != "" ||
+					objOld.GetDeletionTimestamp() != objNew.GetDeletionTimestamp() ||
+					objOld.GetGeneration() != objNew.GetGeneration() {
+					// Checking if diff is not empty so we don't print it when the CR gets deleted
+					if diff != "" {
+						logger.Infof("CR has changed for %q. diff=%s", objNew.Name, diff)
+					}
+					return true
+				}
+
 			case *cephv1.CephBlockPool:
 				objNew := e.ObjectNew.(*cephv1.CephBlockPool)
 				logger.Debug("update event on CephBlockPool CR")

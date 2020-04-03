@@ -30,7 +30,7 @@ spec:
   # The path on the host where configuration files will be persisted. Must be specified.
   # Important: if you reinstall the cluster, make sure you delete this directory from each host or else the mons will fail to start on the new cluster.
   # In Minikube, the '/data' directory is configured to persist across reboots. Use "/data/rook" in Minikube environment.
-  dataDirHostPath: /var/lib/rook
+  dataDirHostPath: /data/rook
   # Whether or not upgrade should continue even if a check fails
   # This means Ceph's status could be degraded and we don't recommend upgrading but you might decide otherwise
   # Use at your OWN risk
@@ -40,7 +40,7 @@ spec:
   continueUpgradeAfterChecksEvenIfNotHealthy: false
   # set the amount of mons to be started
   mon:
-    count: 3
+    count: 1
     allowMultiplePerNode: false
   mgr:
     modules:
@@ -50,13 +50,13 @@ spec:
       enabled: true
   # enable the ceph dashboard for viewing cluster status
   dashboard:
-    enabled: true
+    enabled: false
     # serve the dashboard under a subpath (useful when you are accessing the dashboard via a reverse proxy)
     # urlPrefix: /ceph-dashboard
     # serve the dashboard at the given port.
     # port: 8443
     # serve the dashboard using SSL
-    ssl: true
+    ssl: false
   # enable prometheus alerting for cluster
   monitoring:
     # requires Prometheus to be pre-installed

@@ -388,33 +388,6 @@ type ObjectStoreSpec struct {
 	Gateway GatewaySpec `json:"gateway"`
 }
 
-// +genclient
-// +genclient:noStatus
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-type CephObjectStoreUser struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata"`
-	Spec              ObjectStoreUserSpec `json:"spec"`
-	Status            *Status             `json:"status"`
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-type CephObjectStoreUserList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata"`
-	Items           []CephObjectStoreUser `json:"items"`
-}
-
-// ObjectStoreUserSpec represent the spec of an Objectstoreuser
-type ObjectStoreUserSpec struct {
-	//The store the user will be created in
-	Store string `json:"store,omitempty"`
-	//The display name for the ceph users
-	DisplayName string `json:"displayName,omitempty"`
-}
-
 type GatewaySpec struct {
 	// The port the rgw service will be listening on (http)
 	Port int32 `json:"port"`
@@ -442,6 +415,64 @@ type GatewaySpec struct {
 
 	// PriorityClassName sets priority classes on the rgw pods
 	PriorityClassName string `json:"priorityClassName,omitempty"`
+}
+
+// +genclient
+// +genclient:noStatus
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type CephObjectStoreUser struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata"`
+	Spec              ObjectStoreUserSpec `json:"spec"`
+	Status            *Status             `json:"status"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type CephObjectStoreUserList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+	Items           []CephObjectStoreUser `json:"items"`
+}
+
+// ObjectStoreUserSpec represent the spec of an Objectstoreuser
+type ObjectStoreUserSpec struct {
+	//The store the user will be created in
+	Store string `json:"store,omitempty"`
+	//The display name for the ceph users
+	DisplayName string `json:"displayName,omitempty"`
+}
+
+// +genclient
+// +genclient:noStatus
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type CephObjectStoreRealm struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata"`
+	Spec              ObjectStoreRealmSpec `json:"spec"`
+	Status            *Status              `json:"status"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type CephObjectStoreRealmList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+	Items           []CephObjectStoreRealm `json:"items"`
+}
+
+// ObjectStoreRealmSpec represent the spec of an ObjecStoreRealm
+type ObjectStoreRealmSpec struct {
+	//The display name for the ceph users
+	RootPoolSize uint     `json:"rootPoolSize,omitempty"`
+	Pull         PullSpec `json:"pull,omitempty"`
+}
+
+type PullSpec struct {
+	// The name of the secret that stores the ssl certificate for secure rgw connections
+	Endpoint string `json:"endpoint"`
 }
 
 // +genclient

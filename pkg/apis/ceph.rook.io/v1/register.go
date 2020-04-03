@@ -68,6 +68,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&CephObjectStoreList{},
 		&CephObjectStoreUser{},
 		&CephObjectStoreUserList{},
+		&CephObjectStoreRealm{},
+		&CephObjectStoreRealmList{},
 		&CephRBDMirror{},
 		&CephRBDMirrorList{},
 	)

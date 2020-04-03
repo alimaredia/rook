@@ -348,7 +348,7 @@ spec:
 
         # The logging level for the operator: INFO | DEBUG
         - name: ROOK_LOG_LEVEL
-          value: "INFO"
+          value: "DEBUG"
 
         # The interval to check the health of the ceph cluster and update the status in the custom resource.
         - name: ROOK_CEPH_STATUS_CHECK_INTERVAL

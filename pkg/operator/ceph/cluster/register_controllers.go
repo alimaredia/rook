@@ -29,6 +29,7 @@ import (
 	"github.com/rook/rook/pkg/operator/ceph/file"
 	"github.com/rook/rook/pkg/operator/ceph/nfs"
 	"github.com/rook/rook/pkg/operator/ceph/object"
+	objectrealm "github.com/rook/rook/pkg/operator/ceph/object/realm"
 	objectuser "github.com/rook/rook/pkg/operator/ceph/object/user"
 	"github.com/rook/rook/pkg/operator/ceph/pool"
 
@@ -57,6 +58,7 @@ var AddToManagerFuncs = []func(manager.Manager, *clusterd.Context) error{
 	crash.Add,
 	pool.Add,
 	objectuser.Add,
+	objectrealm.Add,
 	object.Add,
 	file.Add,
 	nfs.Add,

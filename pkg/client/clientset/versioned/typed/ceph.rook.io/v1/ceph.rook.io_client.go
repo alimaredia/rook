@@ -32,6 +32,7 @@ type CephV1Interface interface {
 	CephFilesystemsGetter
 	CephNFSesGetter
 	CephObjectStoresGetter
+	CephObjectStoreRealmsGetter
 	CephObjectStoreUsersGetter
 	CephRBDMirrorsGetter
 }
@@ -63,6 +64,10 @@ func (c *CephV1Client) CephNFSes(namespace string) CephNFSInterface {
 
 func (c *CephV1Client) CephObjectStores(namespace string) CephObjectStoreInterface {
 	return newCephObjectStores(c, namespace)
+}
+
+func (c *CephV1Client) CephObjectStoreRealms(namespace string) CephObjectStoreRealmInterface {
+	return newCephObjectStoreRealms(c, namespace)
 }
 
 func (c *CephV1Client) CephObjectStoreUsers(namespace string) CephObjectStoreUserInterface {

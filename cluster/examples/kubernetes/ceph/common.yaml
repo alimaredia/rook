@@ -508,6 +508,24 @@ spec:
   subresources:
     status: {}
 # OLM: END CEPH OBJECT STORE USERS CRD
+# OLM: BEGIN CEPH OBJECT STORE REALMS CRD
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: cephobjectstorerealms.ceph.rook.io
+spec:
+  group: ceph.rook.io
+  names:
+    kind: CephObjectStoreRealm
+    listKind: CephObjectStoreRealmList
+    plural: cephobjectstorerealms
+    singular: cephobjectstorerealm
+  scope: Namespaced
+  version: v1
+  subresources:
+    status: {}
+# OLM: END CEPH OBJECT STORE REALMS CRD
 # OLM: BEGIN CEPH BLOCK POOL CRD
 ---
 apiVersion: apiextensions.k8s.io/v1beta1

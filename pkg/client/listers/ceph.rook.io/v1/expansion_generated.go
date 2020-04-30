@@ -82,6 +82,22 @@ type CephObjectStoreUserListerExpansion interface{}
 // CephObjectStoreUserNamespaceLister.
 type CephObjectStoreUserNamespaceListerExpansion interface{}
 
+// CephObjectStoreZoneListerExpansion allows custom methods to be added to
+// CephObjectStoreZoneLister.
+type CephObjectStoreZoneListerExpansion interface{}
+
+// CephObjectStoreZoneNamespaceListerExpansion allows custom methods to be added to
+// CephObjectStoreZoneNamespaceLister.
+type CephObjectStoreZoneNamespaceListerExpansion interface{}
+
+// CephObjectStoreZoneGroupListerExpansion allows custom methods to be added to
+// CephObjectStoreZoneGroupLister.
+type CephObjectStoreZoneGroupListerExpansion interface{}
+
+// CephObjectStoreZoneGroupNamespaceListerExpansion allows custom methods to be added to
+// CephObjectStoreZoneGroupNamespaceLister.
+type CephObjectStoreZoneGroupNamespaceListerExpansion interface{}
+
 // CephRBDMirrorListerExpansion allows custom methods to be added to
 // CephRBDMirrorLister.
 type CephRBDMirrorListerExpansion interface{}

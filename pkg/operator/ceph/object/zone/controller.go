@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package objectrealm to manage a rook object store realm.
-package objectrealm
+// Package objectzone to manage a rook object store zone.
+package objectzone
 
 import (
 	"context"
@@ -41,27 +41,27 @@ import (
 )
 
 const (
-	controllerName = "ceph-object-store-realm-controller"
+	controllerName = "ceph-object-store-zone-controller"
 )
 
 var logger = capnslog.NewPackageLogger("github.com/rook/rook", controllerName)
 
-var cephObjectStoreRealmKind = reflect.TypeOf(cephv1.CephObjectStoreRealm{}).Name()
+var cephObjectStoreZoneKind = reflect.TypeOf(cephv1.CephObjectStoreZone{}).Name()
 
 // Sets the type meta for the controller main object
 var controllerTypeMeta = metav1.TypeMeta{
-	Kind:       cephObjectStoreRealmKind,
+	Kind:       cephObjectStoreZoneKind,
 	APIVersion: fmt.Sprintf("%s/%s", cephv1.CustomResourceGroup, cephv1.Version),
 }
 
-// ReconcileObjectStoreRealm reconciles a ObjectStoreRealm object
-type ReconcileObjectStoreRealm struct {
+// ReconcileObjectStoreZone reconciles a ObjectStoreZone object
+type ReconcileObjectStoreZone struct {
 	client  client.Client
 	scheme  *runtime.Scheme
 	context *clusterd.Context
 }
 
-// Add creates a new CephObjectStoreRealm Controller and adds it to the Manager. The Manager will set fields on the Controller
+// Add creates a new CephObjectStoreZone Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager, context *clusterd.Context) error {
 	return add(mgr, newReconciler(mgr, context))
@@ -73,7 +73,7 @@ func newReconciler(mgr manager.Manager, context *clusterd.Context) reconcile.Rec
 	mgrScheme := mgr.GetScheme()
 	cephv1.AddToScheme(mgr.GetScheme())
 
-	return &ReconcileObjectStoreRealm{
+	return &ReconcileObjectStoreZone{
 		client:  mgr.GetClient(),
 		scheme:  mgrScheme,
 		context: context,
@@ -87,8 +87,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// Watch for changes on the CephObjectStoreRealm CRD object
-	err = c.Watch(&source.Kind{Type: &cephv1.CephObjectStoreRealm{TypeMeta: controllerTypeMeta}}, &handler.EnqueueRequestForObject{}, opcontroller.WatchControllerPredicate())
+	// Watch for changes on the CephObjectStoreZone CRD object
+	err = c.Watch(&source.Kind{Type: &cephv1.CephObjectStoreZone{TypeMeta: controllerTypeMeta}}, &handler.EnqueueRequestForObject{}, opcontroller.WatchControllerPredicate())
 	if err != nil {
 		return err
 	}
@@ -96,11 +96,11 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-// Reconcile reads that state of the cluster for a CephObjectStoreRealm object and makes changes based on the state read
-// and what is in the CephObjectStoreRealm.Spec
+// Reconcile reads that state of the cluster for a CephObjectStoreZone object and makes changes based on the state read
+// and what is in the CephObjectStoreZone.Spec
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *ReconcileObjectStoreRealm) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+func (r *ReconcileObjectStoreZone) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// workaround because the rook logging mechanism is not compatible with the controller-runtime loggin interface
 	reconcileResponse, err := r.reconcile(request)
 	if err != nil {
@@ -110,24 +110,24 @@ func (r *ReconcileObjectStoreRealm) Reconcile(request reconcile.Request) (reconc
 	return reconcileResponse, err
 }
 
-func (r *ReconcileObjectStoreRealm) reconcile(request reconcile.Request) (reconcile.Result, error) {
-	// Fetch the CephObjectStoreRealm instance
-	cephObjectStoreRealm := &cephv1.CephObjectStoreRealm{}
-	err := r.client.Get(context.TODO(), request.NamespacedName, cephObjectStoreRealm)
+func (r *ReconcileObjectStoreZone) reconcile(request reconcile.Request) (reconcile.Result, error) {
+	// Fetch the CephObjectStoreZone instance
+	cephObjectStoreZone := &cephv1.CephObjectStoreZone{}
+	err := r.client.Get(context.TODO(), request.NamespacedName, cephObjectStoreZone)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
-			logger.Debug("CephObjectStoreRealm resource not found. Ignoring since object must be deleted.")
+			logger.Debug("CephObjectStoreZone resource not found. Ignoring since object must be deleted.")
 			return reconcile.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		return reconcile.Result{}, errors.Wrap(err, "failed to get CephObjectStoreRealm")
+		return reconcile.Result{}, errors.Wrap(err, "failed to get CephObjectStoreZone")
 	}
 
 	// The CR was just created, initializing status fields
-	if cephObjectStoreRealm.Status == nil {
-		cephObjectStoreRealm.Status = &cephv1.Status{}
-		cephObjectStoreRealm.Status.Phase = k8sutil.Created
-		err := opcontroller.UpdateStatus(r.client, cephObjectStoreRealm)
+	if cephObjectStoreZone.Status == nil {
+		cephObjectStoreZone.Status = &cephv1.Status{}
+		cephObjectStoreZone.Status.Phase = k8sutil.Created
+		err := opcontroller.UpdateStatus(r.client, cephObjectStoreZone)
 		if err != nil {
 			return reconcile.Result{}, errors.Wrap(err, "failed to set status")
 		}
@@ -141,9 +141,9 @@ func (r *ReconcileObjectStoreRealm) reconcile(request reconcile.Request) (reconc
 		// Also, only remove the finalizer if the CephCluster is gone
 		// If not, we should wait for it to be ready
 		// This handles the case where the operator is not ready to accept Ceph command but the cluster exists
-		if !cephObjectStoreRealm.GetDeletionTimestamp().IsZero() && !cephClusterExists {
+		if !cephObjectStoreZone.GetDeletionTimestamp().IsZero() && !cephClusterExists {
 			// Remove finalizer
-			err = opcontroller.RemoveFinalizer(r.client, cephObjectStoreRealm)
+			err = opcontroller.RemoveFinalizer(r.client, cephObjectStoreZone)
 			if err != nil {
 				return reconcile.Result{}, errors.Wrap(err, "failed to remove finalizer")
 			}
@@ -155,17 +155,17 @@ func (r *ReconcileObjectStoreRealm) reconcile(request reconcile.Request) (reconc
 	}
 
 	// Set a finalizer so we can do cleanup before the object goes away
-	err = opcontroller.AddFinalizerIfNotPresent(r.client, cephObjectStoreRealm)
+	err = opcontroller.AddFinalizerIfNotPresent(r.client, cephObjectStoreZone)
 	if err != nil {
 		return reconcile.Result{}, errors.Wrap(err, "failed to add finalizer")
 	}
 
 	// DELETE: the CR was deleted
-	if !cephObjectStoreRealm.GetDeletionTimestamp().IsZero() {
-		logger.Debugf("deleting realm CR %q", cephObjectStoreRealm.Name)
+	if !cephObjectStoreZone.GetDeletionTimestamp().IsZero() {
+		logger.Debugf("deleting zone CR %q", cephObjectStoreZone.Name)
 
 		// Remove finalizer
-		err = opcontroller.RemoveFinalizer(r.client, cephObjectStoreRealm)
+		err = opcontroller.RemoveFinalizer(r.client, cephObjectStoreZone)
 		if err != nil {
 			return reconcile.Result{}, errors.Wrap(err, "failed to remove finalizer")
 		}
@@ -174,29 +174,29 @@ func (r *ReconcileObjectStoreRealm) reconcile(request reconcile.Request) (reconc
 		return reconcile.Result{}, nil
 	}
 
-	// validate the realm settings
-	err = ValidateRealmCR(cephObjectStoreRealm)
+	// validate the zone settings
+	err = ValidateZoneCR(cephObjectStoreZone)
 	if err != nil {
-		cephObjectStoreRealm.Status.Phase = k8sutil.ReconcileFailedStatus
-		err := opcontroller.UpdateStatus(r.client, cephObjectStoreRealm)
+		cephObjectStoreZone.Status.Phase = k8sutil.ReconcileFailedStatus
+		err := opcontroller.UpdateStatus(r.client, cephObjectStoreZone)
 		if err != nil {
 			return reconcile.Result{}, errors.Wrap(err, "failed to set status")
 		}
-		return reconcile.Result{}, errors.Wrapf(err, "invalid name CR %q spec", cephObjectStoreRealm.Name)
+		return reconcile.Result{}, errors.Wrapf(err, "invalid name CR %q spec", cephObjectStoreZone.Name)
 	}
 
 	// Start object reconciliation, updating status for this
-	cephObjectStoreRealm.Status.Phase = k8sutil.ReconcilingStatus
-	err = opcontroller.UpdateStatus(r.client, cephObjectStoreRealm)
+	cephObjectStoreZone.Status.Phase = k8sutil.ReconcilingStatus
+	err = opcontroller.UpdateStatus(r.client, cephObjectStoreZone)
 	if err != nil {
 		return reconcile.Result{}, errors.Wrap(err, "failed to set status")
 	}
 
-	// CREATE/UPDATE CEPH REALM
-	reconcileResponse, err = r.reconcileCephRealm(cephObjectStoreRealm)
+	// CREATE/UPDATE CEPH ZONE
+	reconcileResponse, err = r.reconcileCephZone(cephObjectStoreZone)
 	if err != nil {
-		cephObjectStoreRealm.Status.Phase = k8sutil.ReconcileFailedStatus
-		errStatus := opcontroller.UpdateStatus(r.client, cephObjectStoreRealm)
+		cephObjectStoreZone.Status.Phase = k8sutil.ReconcileFailedStatus
+		errStatus := opcontroller.UpdateStatus(r.client, cephObjectStoreZone)
 		if errStatus != nil {
 			logger.Errorf("failed to set status. %v", errStatus)
 		}
@@ -204,8 +204,8 @@ func (r *ReconcileObjectStoreRealm) reconcile(request reconcile.Request) (reconc
 	}
 
 	// Set Ready status, we are done reconciling
-	cephObjectStoreRealm.Status.Phase = k8sutil.ReadyStatus
-	err = opcontroller.UpdateStatus(r.client, cephObjectStoreRealm)
+	cephObjectStoreZone.Status.Phase = k8sutil.ReadyStatus
+	err = opcontroller.UpdateStatus(r.client, cephObjectStoreZone)
 	if err != nil {
 		return reconcile.Result{}, errors.Wrap(err, "failed to set status")
 	}
@@ -215,21 +215,17 @@ func (r *ReconcileObjectStoreRealm) reconcile(request reconcile.Request) (reconc
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileObjectStoreRealm) reconcileCephRealm(cephObjectStoreRealm *cephv1.CephObjectStoreRealm) (reconcile.Result, error) {
-	if err := createRootPool(r.context, cephObjectStoreRealm.Name, cephObjectStoreRealm.Namespace, cephObjectStoreRealm.Spec.RootPoolSize); err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to create .rgw.root pool")
-	}
-
-	err := createCephRealm(r.context, cephObjectStoreRealm.Name, cephObjectStoreRealm.Namespace)
+func (r *ReconcileObjectStoreZone) reconcileCephZone(cephObjectStoreZone *cephv1.CephObjectStoreZone) (reconcile.Result, error) {
+	err := createCephZone(r.context, cephObjectStoreZone.Name, cephObjectStoreZone.Namespace, cephObjectStoreZone.Spec.Realm, cephObjectStoreZone.Spec.ZoneGroup, cephObjectStoreZone.Spec.IsMaster)
 	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to create object store realm %q", cephObjectStoreRealm.Name)
+		return reconcile.Result{}, errors.Wrapf(err, "failed to create object store zone %q", cephObjectStoreZone.Name)
 	}
 
 	return reconcile.Result{}, nil
 }
 
-// ValidateRealmCR validates the realm arguments
-func ValidateRealmCR(u *cephv1.CephObjectStoreRealm) error {
+// ValidateZoneCR validates the zone arguments
+func ValidateZoneCR(u *cephv1.CephObjectStoreZone) error {
 	if u.Name == "" {
 		return errors.New("missing name")
 	}

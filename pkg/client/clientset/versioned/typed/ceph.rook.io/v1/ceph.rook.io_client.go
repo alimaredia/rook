@@ -34,6 +34,8 @@ type CephV1Interface interface {
 	CephObjectStoresGetter
 	CephObjectStoreRealmsGetter
 	CephObjectStoreUsersGetter
+	CephObjectStoreZonesGetter
+	CephObjectStoreZoneGroupsGetter
 	CephRBDMirrorsGetter
 }
 
@@ -72,6 +74,14 @@ func (c *CephV1Client) CephObjectStoreRealms(namespace string) CephObjectStoreRe
 
 func (c *CephV1Client) CephObjectStoreUsers(namespace string) CephObjectStoreUserInterface {
 	return newCephObjectStoreUsers(c, namespace)
+}
+
+func (c *CephV1Client) CephObjectStoreZones(namespace string) CephObjectStoreZoneInterface {
+	return newCephObjectStoreZones(c, namespace)
+}
+
+func (c *CephV1Client) CephObjectStoreZoneGroups(namespace string) CephObjectStoreZoneGroupInterface {
+	return newCephObjectStoreZoneGroups(c, namespace)
 }
 
 func (c *CephV1Client) CephRBDMirrors(namespace string) CephRBDMirrorInterface {

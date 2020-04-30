@@ -386,6 +386,9 @@ type ObjectStoreSpec struct {
 
 	// The rgw pod info
 	Gateway GatewaySpec `json:"gateway"`
+
+	// The multisite info
+	Multisite MultisiteSpec `json:"multisite"`
 }
 
 type GatewaySpec struct {
@@ -415,6 +418,17 @@ type GatewaySpec struct {
 
 	// PriorityClassName sets priority classes on the rgw pods
 	PriorityClassName string `json:"priorityClassName,omitempty"`
+}
+
+type MultisiteSpec struct {
+	// RGW Realm the Object Store is in
+	Realm string `json:"realm,omitempty"`
+
+	// RGW Zone Group the Object Store is in
+	ZoneGroup string `json:"zoneGroup,omitempty"`
+
+	// RGW Zone the Object Store is in
+	Zone string `json:"zone,omitempty"`
 }
 
 // +genclient
@@ -473,6 +487,59 @@ type ObjectStoreRealmSpec struct {
 type PullSpec struct {
 	// The name of the secret that stores the ssl certificate for secure rgw connections
 	Endpoint string `json:"endpoint"`
+}
+
+// +genclient
+// +genclient:noStatus
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type CephObjectStoreZoneGroup struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata"`
+	Spec              ObjectStoreZoneGroupSpec `json:"spec"`
+	Status            *Status                  `json:"status"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type CephObjectStoreZoneGroupList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+	Items           []CephObjectStoreZoneGroup `json:"items"`
+}
+
+// ObjectStoreZoneGroupSpec represent the spec of an ObjecStoreZoneGroup
+type ObjectStoreZoneGroupSpec struct {
+	//The display name for the ceph users
+	Realm    string `json:"realm,omitempty"`
+	IsMaster bool   `json:"isMaster,omitempty"`
+}
+
+// +genclient
+// +genclient:noStatus
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type CephObjectStoreZone struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata"`
+	Spec              ObjectStoreZoneSpec `json:"spec"`
+	Status            *Status             `json:"status"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type CephObjectStoreZoneList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+	Items           []CephObjectStoreZone `json:"items"`
+}
+
+// ObjectStoreZoneSpec represent the spec of an ObjecStoreZone
+type ObjectStoreZoneSpec struct {
+	//The display name for the ceph users
+	Realm     string `json:"realm,omitempty"`
+	ZoneGroup string `json:"zoneGroup,omitempty"`
+	IsMaster  bool   `json:"isMaster,omitempty"`
 }
 
 // +genclient

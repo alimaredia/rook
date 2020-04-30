@@ -279,7 +279,7 @@ func (r *ReconcileCephObjectStore) reconcileCreateObjectStore(cephObjectStore *c
 
 	// RECONCILE REALM
 	logger.Info("reconciling object store realms")
-	err = reconcileRealm(objContext, serviceIP, cephObjectStore.Spec.Gateway.Port)
+	err = reconcileRealm(objContext, serviceIP, cephObjectStore.Spec)
 	if err != nil {
 		return r.setFailedStatus(name, "failed to create object store realm", err)
 	}

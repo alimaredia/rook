@@ -1,0 +1,13 @@
+#################################################################################################################
+# Create a multisite zonegroup for a collection of object stores
+#  kubectl create -f object-realm.yaml
+#################################################################################################################
+
+apiVersion: ceph.rook.io/v1
+kind: CephObjectStoreZoneGroup
+metadata:
+  name: my-zonegroup
+  namespace: rook-ceph
+spec:
+  realm: my-realm
+  isMaster: true

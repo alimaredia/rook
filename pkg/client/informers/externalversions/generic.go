@@ -79,6 +79,10 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Ceph().V1().CephObjectStoreRealms().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("cephobjectstoreusers"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Ceph().V1().CephObjectStoreUsers().Informer()}, nil
+	case v1.SchemeGroupVersion.WithResource("cephobjectstorezones"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Ceph().V1().CephObjectStoreZones().Informer()}, nil
+	case v1.SchemeGroupVersion.WithResource("cephobjectstorezonegroups"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Ceph().V1().CephObjectStoreZoneGroups().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("cephrbdmirrors"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Ceph().V1().CephRBDMirrors().Informer()}, nil
 

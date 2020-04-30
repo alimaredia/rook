@@ -84,9 +84,15 @@ func deleteRealmAndPools(context *Context, spec cephv1.ObjectStoreSpec) error {
 	return nil
 }
 
-func reconcileRealm(context *Context, serviceIP string, port int32) error {
+func isMultisite(spec cephv1.ObjectStoreSpec) bool {
+	return spec.Multisite.Zone != ""
+}
+
+func reconcileRealm(context *Context, serviceIP string, spec cephv1.ObjectStoreSpec) error {
+	realmArg := fmt.Sprintf("--rgw-realm=%s", context.Name)
+	zoneGroupArg := fmt.Sprintf("--rgw-zonegroup=%s", context.Name)
 	zoneArg := fmt.Sprintf("--rgw-zone=%s", context.Name)
-	endpointArg := fmt.Sprintf("--endpoints=%s:%d", serviceIP, port)
+	endpointArg := fmt.Sprintf("--endpoints=%s:%d", serviceIP, spec.Gateway.Port)
 	updatePeriod := false
 
 	// The first realm must be marked as the default
@@ -99,59 +105,79 @@ func reconcileRealm(context *Context, serviceIP string, port int32) error {
 		defaultArg = "--default"
 	}
 
-	// create the realm if it doesn't exist yet
-	output, err := runAdminCommand(context, "realm", "get")
-	if err != nil {
+	// obviously need to change this
+	if isMultisite(spec) {
 		updatePeriod = true
-		output, err = runAdminCommand(context, "realm", "create", defaultArg)
+		realmID := spec.Multisite.Realm
+		realmArg = fmt.Sprintf("--rgw-realm=%s", realmID)
+		zoneGroupID := spec.Multisite.ZoneGroup
+		zoneGroupArg = fmt.Sprintf("--rgw-zonegroup=%s", zoneGroupID)
+		zoneID := spec.Multisite.Zone
+		zoneArg = fmt.Sprintf("--rgw-zone=%s", zoneID)
+		logger.Infof("Adding object store to realm %s, zonegroup=%s, zone=%s", realmID, zoneGroupID, zoneID)
+		// possibly need default arg?
+		_, err = runAdminCommandNoRealm(context, "zone", "modify", realmArg, zoneGroupArg, zoneArg, endpointArg)
 		if err != nil {
-			return errors.Wrapf(err, "failed to create rgw realm %s", context.Name)
+			// need to change this logging
+			return errors.Wrapf(err, "failed to add object store %s in rgw zone %s in zonegroup %s in realm %s", context.Name, zoneID, zoneGroupID, realmID)
 		}
-	}
-
-	realmID, err := decodeID(output)
-	if err != nil {
-		return errors.Wrap(err, "failed to parse realm id")
-	}
-
-	// create the zonegroup if it doesn't exist yet
-	output, err = runAdminCommand(context, "zonegroup", "get")
-	if err != nil {
-		updatePeriod = true
-		output, err = runAdminCommand(context, "zonegroup", "create", "--master", endpointArg, defaultArg)
+	} else {
+		// create the realm if it doesn't exist yet
+		output, err := runAdminCommand(context, "realm", "get")
 		if err != nil {
-			return errors.Wrapf(err, "failed to create rgw zonegroup for %s", context.Name)
+			updatePeriod = true
+			output, err = runAdminCommand(context, "realm", "create", defaultArg)
+			if err != nil {
+				return errors.Wrapf(err, "failed to create rgw realm %s", context.Name)
+			}
 		}
-	}
 
-	zoneGroupID, err := decodeID(output)
-	if err != nil {
-		return errors.Wrap(err, "failed to parse zone group id")
-	}
-
-	// create the zone if it doesn't exist yet
-	output, err = runAdminCommand(context, "zone", "get", zoneArg)
-	if err != nil {
-		updatePeriod = true
-		output, err = runAdminCommand(context, "zone", "create", "--master", endpointArg, zoneArg, defaultArg)
+		realmID, err := decodeID(output)
 		if err != nil {
-			return errors.Wrapf(err, "failed to create rgw zonegroup for %s", context.Name)
+			return errors.Wrapf(err, "failed to parse realm id")
 		}
-	}
-	zoneID, err := decodeID(output)
-	if err != nil {
-		return errors.Wrap(err, "failed to parse zone id")
+
+		// create the zonegroup if it doesn't exist yet
+		output, err = runAdminCommand(context, "zonegroup", "get")
+		if err != nil {
+			updatePeriod = true
+			output, err = runAdminCommand(context, "zonegroup", "create", "--master", endpointArg, defaultArg)
+			if err != nil {
+				return errors.Wrapf(err, "failed to create rgw zonegroup for %s", context.Name)
+			}
+		}
+
+		zoneGroupID, err := decodeID(output)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse zone group id")
+		}
+
+		// create the zone if it doesn't exist yet
+		output, err = runAdminCommand(context, "zone", "get", zoneArg)
+		if err != nil {
+			updatePeriod = true
+			output, err = runAdminCommand(context, "zone", "create", "--master", endpointArg, zoneArg, defaultArg)
+			if err != nil {
+				return errors.Wrapf(err, "failed to create rgw zonegroup for %s", context.Name)
+			}
+		}
+
+		zoneID, err := decodeID(output)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse zone id")
+		}
+
+		logger.Infof("RGW: realm=%s, zonegroup=%s, zone=%s", realmID, zoneGroupID, zoneID)
 	}
 
 	if updatePeriod {
 		// the period will help notify other zones of changes if there are multi-zones
-		_, err := runAdminCommandNoRealm(context, "period", "update", "--commit")
+		_, err := runAdminCommandNoRealm(context, "period", "update", "--commit", realmArg, zoneGroupArg, zoneArg)
 		if err != nil {
 			return errors.Wrap(err, "failed to update period")
 		}
 	}
 
-	logger.Infof("RGW: realm=%s, zonegroup=%s, zone=%s", realmID, zoneGroupID, zoneID)
 	return nil
 }
 

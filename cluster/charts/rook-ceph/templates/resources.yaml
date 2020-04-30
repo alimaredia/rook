@@ -449,6 +449,40 @@ spec:
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
+  name: cephobjectstorezonegroups.ceph.rook.io
+spec:
+  group: ceph.rook.io
+  names:
+    kind: CephObjectStoreZoneGroup
+    listKind: CephObjectStoreZoneGroupList
+    plural: cephobjectstorezonegroups
+    singular: cephobjectstorezonegroup
+    shortNames:
+    - rcou
+    - objectzonegroup
+  scope: Namespaced
+  version: v1
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: cephobjectstozones.ceph.rook.io
+spec:
+  group: ceph.rook.io
+  names:
+    kind: CephObjectStoreZone
+    listKind: CephObjectStoreZoneList
+    plural: cephobjectstorezones
+    singular: cephobjectstorezone
+    shortNames:
+    - rcou
+    - objectzone
+  scope: Namespaced
+  version: v1
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
   name: cephblockpools.ceph.rook.io
 spec:
   group: ceph.rook.io

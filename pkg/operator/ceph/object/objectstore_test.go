@@ -59,12 +59,13 @@ func TestReconcileRealm(t *testing.T) {
 	context := &clusterd.Context{Executor: executor}
 	objContext := NewContext(context, storeName, "mycluster")
 	// create the first realm, marked as default
-	err := reconcileRealm(objContext, "1.2.3.4", 80)
+	spec := cephv1.ObjectStoreSpec{}
+	err := reconcileRealm(objContext, "1.2.3.4", spec)
 	assert.Nil(t, err)
 
 	// create the second realm, not marked as default
 	defaultStore = false
-	err = reconcileRealm(objContext, "2.3.4.5", 80)
+	err = reconcileRealm(objContext, "2.3.4.5", spec)
 	assert.Nil(t, err)
 }
 

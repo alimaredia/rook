@@ -60,6 +60,14 @@ func (c *FakeCephV1) CephObjectStoreUsers(namespace string) v1.CephObjectStoreUs
 	return &FakeCephObjectStoreUsers{c, namespace}
 }
 
+func (c *FakeCephV1) CephObjectStoreZones(namespace string) v1.CephObjectStoreZoneInterface {
+	return &FakeCephObjectStoreZones{c, namespace}
+}
+
+func (c *FakeCephV1) CephObjectStoreZoneGroups(namespace string) v1.CephObjectStoreZoneGroupInterface {
+	return &FakeCephObjectStoreZoneGroups{c, namespace}
+}
+
 func (c *FakeCephV1) CephRBDMirrors(namespace string) v1.CephRBDMirrorInterface {
 	return &FakeCephRBDMirrors{c, namespace}
 }

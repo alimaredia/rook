@@ -40,6 +40,10 @@ type Interface interface {
 	CephObjectStoreRealms() CephObjectStoreRealmInformer
 	// CephObjectStoreUsers returns a CephObjectStoreUserInformer.
 	CephObjectStoreUsers() CephObjectStoreUserInformer
+	// CephObjectStoreZones returns a CephObjectStoreZoneInformer.
+	CephObjectStoreZones() CephObjectStoreZoneInformer
+	// CephObjectStoreZoneGroups returns a CephObjectStoreZoneGroupInformer.
+	CephObjectStoreZoneGroups() CephObjectStoreZoneGroupInformer
 	// CephRBDMirrors returns a CephRBDMirrorInformer.
 	CephRBDMirrors() CephRBDMirrorInformer
 }
@@ -93,6 +97,16 @@ func (v *version) CephObjectStoreRealms() CephObjectStoreRealmInformer {
 // CephObjectStoreUsers returns a CephObjectStoreUserInformer.
 func (v *version) CephObjectStoreUsers() CephObjectStoreUserInformer {
 	return &cephObjectStoreUserInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// CephObjectStoreZones returns a CephObjectStoreZoneInformer.
+func (v *version) CephObjectStoreZones() CephObjectStoreZoneInformer {
+	return &cephObjectStoreZoneInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// CephObjectStoreZoneGroups returns a CephObjectStoreZoneGroupInformer.
+func (v *version) CephObjectStoreZoneGroups() CephObjectStoreZoneGroupInformer {
+	return &cephObjectStoreZoneGroupInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // CephRBDMirrors returns a CephRBDMirrorInformer.

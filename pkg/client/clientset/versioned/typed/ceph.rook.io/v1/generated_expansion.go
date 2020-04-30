@@ -34,4 +34,8 @@ type CephObjectStoreRealmExpansion interface{}
 
 type CephObjectStoreUserExpansion interface{}
 
+type CephObjectStoreZoneExpansion interface{}
+
+type CephObjectStoreZoneGroupExpansion interface{}
+
 type CephRBDMirrorExpansion interface{}

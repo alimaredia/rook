@@ -75,6 +75,7 @@ func runAdminCommandNoRealm(c *Context, args ...string) (string, error) {
 	return output, nil
 }
 
+// get a CephObjectStoreRealm CR
 func getObjectStoreRealm(c cephclientset.CephV1Interface, namespace, realmName string) (*cephv1.CephObjectStoreRealm, error) {
 	// Verify the object store realm API object actually exists
 	realm, err := c.CephObjectStoreRealms(namespace).Get(realmName, metav1.GetOptions{})
@@ -82,7 +83,19 @@ func getObjectStoreRealm(c cephclientset.CephV1Interface, namespace, realmName s
 		if kerrors.IsNotFound(err) {
 			return nil, errors.Wrapf(err, "cephObjectStoreRealm %s not found", realmName)
 		}
-		return nil, errors.Wrapf(err, "error getting cephObjectStore")
+		return nil, errors.Wrapf(err, "error getting cephObjectStoreRealm %s", realmName)
 	}
 	return realm, err
+}
+
+// get a Ceph Realm
+func getCephRealm(c *clusterd.Context, zoneGroupName string, nameSpace string, realmName string) error {
+	realmArg := fmt.Sprintf("--rgw-realm=%s", realmName)
+	objContext := NewContext(c, zoneGroupName, nameSpace)
+
+	_, err := runAdminCommandNoRealm(objContext, "realm", "get", realmArg)
+	if err != nil {
+		return errors.Wrapf(err, "error getting realm %s form Ceph cluster", realmName)
+	}
+	return nil
 }

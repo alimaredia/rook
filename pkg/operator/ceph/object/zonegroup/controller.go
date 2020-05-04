@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"time"
 
 	opcontroller "github.com/rook/rook/pkg/operator/ceph/controller"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -42,7 +43,10 @@ import (
 
 const (
 	controllerName = "ceph-object-store-zonegroup-controller"
+	waitTime       = 10 * time.Second
 )
+
+var WaitForRequeueIfObjectStoreRealmNotReady = reconcile.Result{Requeue: true, RequeueAfter: waitTime}
 
 var logger = capnslog.NewPackageLogger("github.com/rook/rook", controllerName)
 
@@ -154,10 +158,6 @@ func (r *ReconcileObjectStoreZoneGroup) reconcile(request reconcile.Request) (re
 		return reconcileResponse, nil
 	}
 
-	// Make sure an ObjectStoreRealm is present otherwise do nothing
-	cephObjectStoreRealm, err := getObjectStoreRealm(r.context.RookClientset.CephV1(), cephObjectStoreZoneGroup.Namespace, cephObjectStoreZoneGroup.Spec.Realm)
-	logger.Debugf("CephObjectStoreZoneGroup realm is %s, CephObjectStoreRealm resource found is %s", cephObjectStoreZoneGroup.Spec.Realm, cephObjectStoreRealm.Name)
-
 	// Set a finalizer so we can do cleanup before the object goes away
 	err = opcontroller.AddFinalizerIfNotPresent(r.client, cephObjectStoreZoneGroup)
 	if err != nil {
@@ -196,6 +196,20 @@ func (r *ReconcileObjectStoreZoneGroup) reconcile(request reconcile.Request) (re
 		return reconcile.Result{}, errors.Wrap(err, "failed to set status")
 	}
 
+	// Make sure an ObjectStoreRealm is present
+	realmName, reconcileResponse, err := r.reconcileObjectStoreRealm(cephObjectStoreZoneGroup)
+	if err != nil {
+		return reconcileResponse, err
+	}
+	logger.Debugf("CephObjectStoreRealm %s found", realmName)
+
+	// Make sure Realm has been created in Ceph Cluster
+	realmName, reconcileResponse, err = r.reconcileCephRealm(cephObjectStoreZoneGroup)
+	if err != nil {
+		return reconcileResponse, err
+	}
+	logger.Debugf("Realm %s found in Ceph cluster", realmName)
+
 	// CREATE/UPDATE CEPH ZONEGROUP
 	reconcileResponse, err = r.reconcileCephZoneGroup(cephObjectStoreZoneGroup)
 	if err != nil {
@@ -228,6 +242,24 @@ func (r *ReconcileObjectStoreZoneGroup) reconcileCephZoneGroup(cephObjectStoreZo
 	return reconcile.Result{}, nil
 }
 
+func (r *ReconcileObjectStoreZoneGroup) reconcileObjectStoreRealm(cephObjectStoreZoneGroup *cephv1.CephObjectStoreZoneGroup) (string, reconcile.Result, error) {
+	cephObjectStoreRealm, err := getObjectStoreRealm(r.context.RookClientset.CephV1(), cephObjectStoreZoneGroup.Namespace, cephObjectStoreZoneGroup.Spec.Realm)
+	if err != nil {
+		return cephObjectStoreZoneGroup.Spec.Realm, WaitForRequeueIfObjectStoreRealmNotReady, errors.Wrapf(err, "failed to find CephObjectStoreRealm %q", cephObjectStoreZoneGroup.Spec.Realm)
+	}
+
+	return cephObjectStoreRealm.Name, reconcile.Result{}, nil
+}
+
+func (r *ReconcileObjectStoreZoneGroup) reconcileCephRealm(cephObjectStoreZoneGroup *cephv1.CephObjectStoreZoneGroup) (string, reconcile.Result, error) {
+	err := getCephRealm(r.context, cephObjectStoreZoneGroup.Name, cephObjectStoreZoneGroup.Namespace, cephObjectStoreZoneGroup.Spec.Realm)
+	if err != nil {
+		return cephObjectStoreZoneGroup.Spec.Realm, WaitForRequeueIfObjectStoreRealmNotReady, errors.Wrapf(err, "realm %s does not exist in the Ceph cluster", cephObjectStoreZoneGroup.Spec.Realm)
+	}
+
+	return cephObjectStoreZoneGroup.Spec.Realm, reconcile.Result{}, nil
+}
+
 // ValidateZoneGroup validates the zonegroup arguments
 func ValidateZoneGroup(u *cephv1.CephObjectStoreZoneGroup) error {
 	if u.Name == "" {
@@ -235,6 +267,9 @@ func ValidateZoneGroup(u *cephv1.CephObjectStoreZoneGroup) error {
 	}
 	if u.Namespace == "" {
 		return errors.New("missing namespace")
+	}
+	if u.Spec.Realm == "" {
+		return errors.New("missing realm")
 	}
 	return nil
 }

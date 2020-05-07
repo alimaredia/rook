@@ -216,10 +216,6 @@ func (r *ReconcileObjectStoreRealm) reconcile(request reconcile.Request) (reconc
 }
 
 func (r *ReconcileObjectStoreRealm) reconcileCephRealm(cephObjectStoreRealm *cephv1.CephObjectStoreRealm) (reconcile.Result, error) {
-	if err := createRootPool(r.context, cephObjectStoreRealm.Name, cephObjectStoreRealm.Namespace, cephObjectStoreRealm.Spec.RootPoolSize); err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to create .rgw.root pool")
-	}
-
 	err := createCephRealm(r.context, cephObjectStoreRealm.Name, cephObjectStoreRealm.Namespace)
 	if err != nil {
 		return reconcile.Result{}, errors.Wrapf(err, "failed to create object store realm %q", cephObjectStoreRealm.Name)

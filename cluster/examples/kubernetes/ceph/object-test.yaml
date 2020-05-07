@@ -22,7 +22,3 @@ spec:
     port: 80
     securePort:
     instances: 1
-  multisite:
-    realm: my-realm
-    zoneGroup: my-zonegroup
-    zone: my-zone

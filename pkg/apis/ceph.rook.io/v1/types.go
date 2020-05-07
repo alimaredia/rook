@@ -479,9 +479,7 @@ type CephObjectStoreRealmList struct {
 
 // ObjectStoreRealmSpec represent the spec of an ObjecStoreRealm
 type ObjectStoreRealmSpec struct {
-	//The display name for the ceph users
-	RootPoolSize uint     `json:"rootPoolSize,omitempty"`
-	Pull         PullSpec `json:"pull,omitempty"`
+	Pull PullSpec `json:"pull,omitempty"`
 }
 
 type PullSpec struct {

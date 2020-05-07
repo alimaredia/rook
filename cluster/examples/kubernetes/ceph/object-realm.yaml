@@ -9,6 +9,5 @@ metadata:
   name: my-realm
   namespace: rook-ceph
 spec:
-  rootPoolSize: 1
   pull:
     endpoint: http://my-realm-zone-a-objectstore-1:80

@@ -327,7 +327,7 @@ func (r *ReconcileCephObjectStore) reconcileCephZone(cephObjectStore *cephv1.Cep
 	zone, _ := r.context.RookClientset.CephV1().CephObjectStoreZones(cephObjectStore.Namespace).Get(cephObjectStore.Spec.Multisite.Zone, metav1.GetOptions{})
 	zonegroup, _ := r.context.RookClientset.CephV1().CephObjectStoreZoneGroups(cephObjectStore.Namespace).Get(zone.Spec.ZoneGroup, metav1.GetOptions{})
 
-	err := getCephZone(r.context, cephObjectStore.Name, cephObjectStore.Namespace, zone.Spec.ZoneGroup, zonegroup.Spec.Realm)
+	err := getCephZone(r.context, cephObjectStore.Spec.Multisite.Zone, cephObjectStore.Namespace, zone.Spec.ZoneGroup, zonegroup.Spec.Realm)
 	if err != nil {
 		return WaitForRequeueIfObjectStoreZoneNotReady, errors.Wrapf(err, "zone group %s does not exist in the Ceph cluster", cephObjectStore.Spec.Multisite.Zone)
 	}

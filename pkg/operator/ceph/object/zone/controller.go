@@ -244,8 +244,8 @@ func (r *ReconcileObjectStoreZone) reconcileCephZone(cephObjectStoreZone *cephv1
 
 func (r *ReconcileObjectStoreZone) reconcileObjectStoreZoneGroup(cephObjectStoreZone *cephv1.CephObjectStoreZone) (string, string, reconcile.Result, error) {
 	cephObjectStoreZoneGroup, err := getObjectStoreZoneGroup(r.context.RookClientset.CephV1(), cephObjectStoreZone.Namespace, cephObjectStoreZone.Spec.ZoneGroup)
-	if err != nil {
-		return cephObjectStoreZoneGroup.Spec.Realm, cephObjectStoreZone.Spec.ZoneGroup, WaitForRequeueIfObjectStoreZoneGroupNotReady, errors.Wrapf(err, "failed to find CephObjectStoreZoneGroup %q", cephObjectStoreZone.Spec.ZoneGroup)
+	if err != nil || cephObjectStoreZoneGroup == nil {
+		return "Error No ZoneGroup", cephObjectStoreZone.Spec.ZoneGroup, WaitForRequeueIfObjectStoreZoneGroupNotReady, errors.Wrapf(err, "failed to find CephObjectStoreZoneGroup %q", cephObjectStoreZone.Spec.ZoneGroup)
 	}
 
 	return cephObjectStoreZoneGroup.Spec.Realm, cephObjectStoreZoneGroup.Name, reconcile.Result{}, nil

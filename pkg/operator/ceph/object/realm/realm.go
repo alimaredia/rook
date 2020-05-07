@@ -19,12 +19,8 @@ package objectrealm
 import (
 	"fmt"
 	"github.com/pkg/errors"
-	cephv1 "github.com/rook/rook/pkg/apis/ceph.rook.io/v1"
 	"github.com/rook/rook/pkg/clusterd"
 	"github.com/rook/rook/pkg/daemon/ceph/client"
-	ceph "github.com/rook/rook/pkg/daemon/ceph/client"
-	"github.com/rook/rook/pkg/operator/ceph/config"
-	"strconv"
 )
 
 // Context holds the context for the object store.
@@ -67,56 +63,4 @@ func runAdminCommandNoRealm(c *Context, args ...string) (string, error) {
 	}
 
 	return output, nil
-}
-
-func createRootPool(c *clusterd.Context, realmName string, nameSpace string, poolSize uint) error {
-	context := NewContext(c, realmName, nameSpace)
-	rootPool := ".rgw.root"
-	confirmFlag := "--yes-i-really-mean-it"
-	appName := "rook-ceph-rgw"
-
-	// see if .rgw.root exists
-	if poolDetails, err := ceph.GetPoolDetails(context.Context, context.ClusterName, rootPool); err != nil {
-		logger.Infof(".rgw.root pool not yet created")
-		failureDomain := cephv1.DefaultFailureDomain
-		metadataPoolPGs, err := config.GetMonStore(context.Context, context.ClusterName).Get("mon.", "rgw_rados_pool_pg_num_min")
-
-		// set the crush root to the default if not already specified
-		crushRoot := "default"
-		args := []string{"osd", "crush", "rule", "create-replicated", rootPool, crushRoot, failureDomain}
-		_, err = client.NewCephCommand(context.Context, context.ClusterName, args).Run()
-		if err != nil {
-			return errors.Wrapf(err, "failed to create crush rule %s", rootPool)
-		}
-
-		// create the pool
-		args = []string{"osd", "pool", "create", rootPool, metadataPoolPGs, "replicated", rootPool, "--size", strconv.FormatUint(uint64(poolSize), 10)}
-		output, err := client.NewCephCommand(context.Context, context.ClusterName, args).Run()
-		if err != nil {
-			return errors.Wrapf(err, "failed to create replicated pool %s. %s", rootPool, string(output))
-		}
-
-		// the pool is type replicated, set the size for the pool now that it's been created
-		if err = client.SetPoolReplicatedSizeProperty(context.Context, context.ClusterName, rootPool, strconv.FormatUint(uint64(poolSize), 10)); err != nil {
-			return errors.Wrapf(err, "failed to set size property to replicated pool %q to %d", rootPool, poolSize)
-		}
-
-		// tag pool with "rook-ceph-rgw" tag
-		args = []string{"osd", "pool", "application", "enable", rootPool, appName, confirmFlag}
-		_, err = client.NewCephCommand(context.Context, context.ClusterName, args).Run()
-		if err != nil {
-			return errors.Wrapf(err, "failed to enable application %s on pool %s", appName, rootPool)
-		}
-		logger.Infof("created replicated pool %s", rootPool)
-	} else {
-		logger.Infof("%s pool has already been created", rootPool)
-		if poolDetails.Size != poolSize {
-			logger.Infof("pool size is changing from %d to %d", poolDetails.Size, poolSize)
-			if err = client.SetPoolReplicatedSizeProperty(context.Context, context.ClusterName, rootPool, strconv.FormatUint(uint64(poolSize), 10)); err != nil {
-				return errors.Wrapf(err, "failed to set size property to replicated pool %q to %d", poolDetails.Name, poolSize)
-			}
-		}
-	}
-
-	return nil
 }

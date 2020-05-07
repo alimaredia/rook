@@ -19,8 +19,12 @@ package objectzone
 import (
 	"fmt"
 	"github.com/pkg/errors"
+	cephv1 "github.com/rook/rook/pkg/apis/ceph.rook.io/v1"
+	cephclientset "github.com/rook/rook/pkg/client/clientset/versioned/typed/ceph.rook.io/v1"
 	"github.com/rook/rook/pkg/clusterd"
 	"github.com/rook/rook/pkg/daemon/ceph/client"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Context holds the context for the object store.
@@ -70,4 +74,30 @@ func runAdminCommandNoRealm(c *Context, args ...string) (string, error) {
 	}
 
 	return output, nil
+}
+
+// get a CephObjectStoreZone CR
+func getObjectStoreZoneGroup(c cephclientset.CephV1Interface, namespace, zoneGroupName string) (*cephv1.CephObjectStoreZoneGroup, error) {
+	// Verify the object store realm API object actually exists
+	zoneGroup, err := c.CephObjectStoreZoneGroups(namespace).Get(zoneGroupName, metav1.GetOptions{})
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return nil, errors.Wrapf(err, "cephObjectStoreZoneGroup %s not found", zoneGroupName)
+		}
+		return nil, errors.Wrapf(err, "error getting cephObjectStoreZoneGroup %s", zoneGroupName)
+	}
+	return zoneGroup, err
+}
+
+// get a Ceph Zone Group
+func getCephZoneGroup(c *clusterd.Context, zoneName string, nameSpace string, zoneGroupName, realmName string) error {
+	realmArg := fmt.Sprintf("--rgw-realm=%s", realmName)
+	zoneGroupArg := fmt.Sprintf("--rgw-zonegroup=%s", zoneGroupName)
+	objContext := NewContext(c, zoneName, nameSpace)
+
+	_, err := runAdminCommandNoRealm(objContext, "zonegroup", "get", realmArg, zoneGroupArg)
+	if err != nil {
+		return errors.Wrapf(err, "error getting zone group %s form Ceph cluster", zoneGroupName)
+	}
+	return nil
 }

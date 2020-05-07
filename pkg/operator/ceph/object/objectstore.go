@@ -24,9 +24,13 @@ import (
 
 	"github.com/pkg/errors"
 	cephv1 "github.com/rook/rook/pkg/apis/ceph.rook.io/v1"
+	cephclientset "github.com/rook/rook/pkg/client/clientset/versioned/typed/ceph.rook.io/v1"
+	"github.com/rook/rook/pkg/clusterd"
 	"github.com/rook/rook/pkg/daemon/ceph/client"
 	ceph "github.com/rook/rook/pkg/daemon/ceph/client"
 	"github.com/rook/rook/pkg/operator/ceph/config"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -86,6 +90,33 @@ func deleteRealmAndPools(context *Context, spec cephv1.ObjectStoreSpec) error {
 
 func isMultisite(spec cephv1.ObjectStoreSpec) bool {
 	return spec.Multisite.Zone != ""
+}
+
+// get a Object Store Zone Group
+func getObjectStoreZone(c cephclientset.CephV1Interface, namespace, zoneName string) error {
+	// Verify the object store realm API object actually exists
+	_, err := c.CephObjectStoreZones(namespace).Get(zoneName, metav1.GetOptions{})
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return errors.Wrapf(err, "cephObjectStoreZone %s not found", zoneName)
+		}
+		return errors.Wrapf(err, "error getting cephObjectStoreZone %s", zoneName)
+	}
+	return err
+}
+
+// get a Ceph Zone Group
+func getCephZone(c *clusterd.Context, zoneName string, nameSpace string, zoneGroupName string, realmName string) error {
+	realmArg := fmt.Sprintf("--rgw-realm=%s", realmName)
+	zoneGroupArg := fmt.Sprintf("--rgw-zonegroup=%s", zoneGroupName)
+	zoneArg := fmt.Sprintf("--rgw-zone=%s", zoneName)
+	objContext := NewContext(c, zoneName, nameSpace)
+
+	_, err := runAdminCommandNoRealm(objContext, "zone", "get", realmArg, zoneGroupArg, zoneArg)
+	if err != nil {
+		return errors.Wrapf(err, "error getting zone %s from Ceph cluster", zoneName)
+	}
+	return nil
 }
 
 func reconcileRealm(context *Context, serviceIP string, spec cephv1.ObjectStoreSpec) error {

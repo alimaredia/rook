@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"time"
 
 	"github.com/coreos/pkg/capnslog"
 	"github.com/pkg/errors"
@@ -48,7 +49,10 @@ import (
 
 const (
 	controllerName = "ceph-object-controller"
+	waitTime       = 10 * time.Second
 )
+
+var WaitForRequeueIfObjectStoreZoneNotReady = reconcile.Result{Requeue: true, RequeueAfter: waitTime}
 
 var logger = capnslog.NewPackageLogger("github.com/rook/rook", controllerName)
 
@@ -261,6 +265,22 @@ func (r *ReconcileCephObjectStore) reconcileCreateObjectStore(cephObjectStore *c
 		skipUpgradeChecks: r.cephClusterSpec.SkipUpgradeChecks,
 	}
 
+	// RECONCILE OBJECTSTOREZONE IF MULTISITE
+	if isMultisite(cephObjectStore.Spec) {
+		reconcileResponse, err := r.reconcileObjectStoreZone(cephObjectStore)
+		if err != nil {
+			return reconcileResponse, err
+		}
+	}
+
+	// RECONCILE CEPH ZONE IF MULTISITE
+	if isMultisite(cephObjectStore.Spec) {
+		reconcileResponse, err := r.reconcileCephZone(cephObjectStore)
+		if err != nil {
+			return reconcileResponse, err
+		}
+	}
+
 	// RECONCILE SERVICE
 	logger.Debug("reconciling object store service")
 	serviceIP, err := cfg.reconcileService(cephObjectStore)
@@ -289,6 +309,30 @@ func (r *ReconcileCephObjectStore) reconcileCreateObjectStore(cephObjectStore *c
 		return reconcile.Result{}, errors.Wrapf(err, "failed to create object store %q", cephObjectStore.Name)
 	}
 
+	return reconcile.Result{}, nil
+}
+
+func (r *ReconcileCephObjectStore) reconcileObjectStoreZone(cephObjectStore *cephv1.CephObjectStore) (reconcile.Result, error) {
+	err := getObjectStoreZone(r.context.RookClientset.CephV1(), cephObjectStore.Namespace, cephObjectStore.Spec.Multisite.Zone)
+	if err != nil {
+		return WaitForRequeueIfObjectStoreZoneNotReady, errors.Wrapf(err, "failed to find CephObjectStoreZone %q", cephObjectStore.Spec.Multisite.Zone)
+	}
+
+	logger.Debugf("CephObjectStoreZone resource %s found", cephObjectStore.Spec.Multisite.Zone)
+	return reconcile.Result{}, nil
+}
+
+func (r *ReconcileCephObjectStore) reconcileCephZone(cephObjectStore *cephv1.CephObjectStore) (reconcile.Result, error) {
+	// get zone group and realm info for getCephZone
+	zone, _ := r.context.RookClientset.CephV1().CephObjectStoreZones(cephObjectStore.Namespace).Get(cephObjectStore.Spec.Multisite.Zone, metav1.GetOptions{})
+	zonegroup, _ := r.context.RookClientset.CephV1().CephObjectStoreZoneGroups(cephObjectStore.Namespace).Get(zone.Spec.ZoneGroup, metav1.GetOptions{})
+
+	err := getCephZone(r.context, cephObjectStore.Name, cephObjectStore.Namespace, zone.Spec.ZoneGroup, zonegroup.Spec.Realm)
+	if err != nil {
+		return WaitForRequeueIfObjectStoreZoneNotReady, errors.Wrapf(err, "zone group %s does not exist in the Ceph cluster", cephObjectStore.Spec.Multisite.Zone)
+	}
+
+	logger.Debugf("Zone %s found in Ceph cluster", cephObjectStore.Spec.Multisite.Zone)
 	return reconcile.Result{}, nil
 }
 

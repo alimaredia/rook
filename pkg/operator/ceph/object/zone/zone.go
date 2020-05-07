@@ -90,7 +90,7 @@ func getObjectStoreZoneGroup(c cephclientset.CephV1Interface, namespace, zoneGro
 }
 
 // get a Ceph Zone Group
-func getCephZoneGroup(c *clusterd.Context, zoneName string, nameSpace string, zoneGroupName, realmName string) error {
+func getCephZoneGroup(c *clusterd.Context, zoneName string, nameSpace string, zoneGroupName string, realmName string) error {
 	realmArg := fmt.Sprintf("--rgw-realm=%s", realmName)
 	zoneGroupArg := fmt.Sprintf("--rgw-zonegroup=%s", zoneGroupName)
 	objContext := NewContext(c, zoneName, nameSpace)

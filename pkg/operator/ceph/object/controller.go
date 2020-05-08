@@ -315,7 +315,7 @@ func (r *ReconcileCephObjectStore) reconcileCreateObjectStore(cephObjectStore *c
 func (r *ReconcileCephObjectStore) reconcileObjectStoreZone(cephObjectStore *cephv1.CephObjectStore) (reconcile.Result, error) {
 	err := getObjectStoreZone(r.context.RookClientset.CephV1(), cephObjectStore.Namespace, cephObjectStore.Spec.Multisite.Zone)
 	if err != nil {
-		return WaitForRequeueIfObjectStoreZoneNotReady, errors.Wrapf(err, "failed to find CephObjectStoreZone %q", cephObjectStore.Spec.Multisite.Zone)
+		return WaitForRequeueIfObjectStoreZoneNotReady, err
 	}
 
 	logger.Debugf("CephObjectStoreZone resource %s found", cephObjectStore.Spec.Multisite.Zone)
@@ -323,16 +323,30 @@ func (r *ReconcileCephObjectStore) reconcileObjectStoreZone(cephObjectStore *cep
 }
 
 func (r *ReconcileCephObjectStore) reconcileCephZone(cephObjectStore *cephv1.CephObjectStore) (reconcile.Result, error) {
-	// get zone group and realm info for getCephZone
-	zone, _ := r.context.RookClientset.CephV1().CephObjectStoreZones(cephObjectStore.Namespace).Get(cephObjectStore.Spec.Multisite.Zone, metav1.GetOptions{})
-	zonegroup, _ := r.context.RookClientset.CephV1().CephObjectStoreZoneGroups(cephObjectStore.Namespace).Get(zone.Spec.ZoneGroup, metav1.GetOptions{})
+	zoneName := cephObjectStore.Spec.Multisite.Zone
 
-	err := getCephZone(r.context, cephObjectStore.Spec.Multisite.Zone, cephObjectStore.Namespace, zone.Spec.ZoneGroup, zonegroup.Spec.Realm)
+	// get zone group and realm info for getCephZone
+	zone, err := r.context.RookClientset.CephV1().CephObjectStoreZones(cephObjectStore.Namespace).Get(zoneName, metav1.GetOptions{})
 	if err != nil {
-		return WaitForRequeueIfObjectStoreZoneNotReady, errors.Wrapf(err, "zone group %s does not exist in the Ceph cluster", cephObjectStore.Spec.Multisite.Zone)
+		return WaitForRequeueIfObjectStoreZoneNotReady, err
 	}
 
-	logger.Debugf("Zone %s found in Ceph cluster", cephObjectStore.Spec.Multisite.Zone)
+	zonegroup, err := r.context.RookClientset.CephV1().CephObjectStoreZoneGroups(cephObjectStore.Namespace).Get(zone.Spec.ZoneGroup, metav1.GetOptions{})
+	if err != nil {
+		return WaitForRequeueIfObjectStoreZoneNotReady, err
+	}
+
+	realm, err := r.context.RookClientset.CephV1().CephObjectStoreRealms(cephObjectStore.Namespace).Get(zonegroup.Spec.Realm, metav1.GetOptions{})
+	if err != nil {
+		return WaitForRequeueIfObjectStoreZoneNotReady, err
+	}
+
+	err = getCephZone(r.context, zoneName, cephObjectStore.Namespace, zonegroup.Name, realm.Name)
+	if err != nil {
+		return WaitForRequeueIfObjectStoreZoneNotReady, err
+	}
+
+	logger.Debugf("Zone %s found in Ceph cluster", zoneName)
 	return reconcile.Result{}, nil
 }
 

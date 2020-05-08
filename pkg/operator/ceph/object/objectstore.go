@@ -98,7 +98,7 @@ func getObjectStoreZone(c cephclientset.CephV1Interface, namespace, zoneName str
 	_, err := c.CephObjectStoreZones(namespace).Get(zoneName, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
-			return errors.Wrapf(err, "cephObjectStoreZone %s not found", zoneName)
+			return err
 		}
 		return errors.Wrapf(err, "error getting cephObjectStoreZone %s", zoneName)
 	}
@@ -114,7 +114,7 @@ func getCephZone(c *clusterd.Context, zoneName string, nameSpace string, zoneGro
 
 	_, err := runAdminCommandNoRealm(objContext, "zone", "get", realmArg, zoneGroupArg, zoneArg)
 	if err != nil {
-		return errors.Wrapf(err, "error getting zone %s from Ceph cluster", zoneName)
+		return errors.Wrapf(err, "zone %s does not exist in the Ceph cluster", zoneName)
 	}
 	return nil
 }

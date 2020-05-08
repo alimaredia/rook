@@ -52,7 +52,7 @@ func createCephZone(c *clusterd.Context, zoneName string, nameSpace string, real
 	if err != nil {
 		_, err := runAdminCommandNoRealm(objContext, "zone", "create", realmArg, zoneGroupArg, zoneArg, masterArg)
 		if err != nil {
-			logger.Warningf("failed to create rgw zone %q. %v", zoneName, err)
+			return errors.Wrapf(err, "failed to create ceph zone %s", zoneName)
 		}
 	}
 
@@ -82,7 +82,7 @@ func getObjectStoreZoneGroup(c cephclientset.CephV1Interface, namespace, zoneGro
 	zoneGroup, err := c.CephObjectStoreZoneGroups(namespace).Get(zoneGroupName, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
-			return nil, errors.Wrapf(err, "cephObjectStoreZoneGroup %s not found", zoneGroupName)
+			return nil, err
 		}
 		return nil, errors.Wrapf(err, "error getting cephObjectStoreZoneGroup %s", zoneGroupName)
 	}

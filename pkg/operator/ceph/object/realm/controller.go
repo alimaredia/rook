@@ -104,7 +104,7 @@ func (r *ReconcileObjectStoreRealm) Reconcile(request reconcile.Request) (reconc
 	// workaround because the rook logging mechanism is not compatible with the controller-runtime loggin interface
 	reconcileResponse, err := r.reconcile(request)
 	if err != nil {
-		logger.Errorf("failed to reconcile %v", err)
+		logger.Errorf("failed to reconcile: %v", err)
 	}
 
 	return reconcileResponse, err
@@ -218,7 +218,7 @@ func (r *ReconcileObjectStoreRealm) reconcile(request reconcile.Request) (reconc
 func (r *ReconcileObjectStoreRealm) reconcileCephRealm(cephObjectStoreRealm *cephv1.CephObjectStoreRealm) (reconcile.Result, error) {
 	err := createCephRealm(r.context, cephObjectStoreRealm.Name, cephObjectStoreRealm.Namespace)
 	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to create object store realm %q", cephObjectStoreRealm.Name)
+		return reconcile.Result{}, err
 	}
 
 	return reconcile.Result{}, nil

@@ -41,7 +41,7 @@ func createCephRealm(c *clusterd.Context, realmName string, nameSpace string) er
 	if err != nil {
 		_, err := runAdminCommandNoRealm(objContext, "realm", "create", realmArg)
 		if err != nil {
-			logger.Warningf("failed to create rgw realm %q. %v", realmName, err)
+			return errors.Wrapf(err, "failed to create ceph realm %s", realmName)
 		}
 	}
 

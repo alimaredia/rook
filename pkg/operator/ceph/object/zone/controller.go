@@ -108,7 +108,7 @@ func (r *ReconcileObjectStoreZone) Reconcile(request reconcile.Request) (reconci
 	// workaround because the rook logging mechanism is not compatible with the controller-runtime loggin interface
 	reconcileResponse, err := r.reconcile(request)
 	if err != nil {
-		logger.Errorf("failed to reconcile %v", err)
+		logger.Errorf("failed to reconcile: %v", err)
 	}
 
 	return reconcileResponse, err
@@ -245,7 +245,7 @@ func (r *ReconcileObjectStoreZone) reconcileCephZone(cephObjectStoreZone *cephv1
 func (r *ReconcileObjectStoreZone) reconcileObjectStoreZoneGroup(cephObjectStoreZone *cephv1.CephObjectStoreZone) (string, string, reconcile.Result, error) {
 	cephObjectStoreZoneGroup, err := getObjectStoreZoneGroup(r.context.RookClientset.CephV1(), cephObjectStoreZone.Namespace, cephObjectStoreZone.Spec.ZoneGroup)
 	if err != nil || cephObjectStoreZoneGroup == nil {
-		return "Error No ZoneGroup", cephObjectStoreZone.Spec.ZoneGroup, WaitForRequeueIfObjectStoreZoneGroupNotReady, errors.Wrapf(err, "failed to find CephObjectStoreZoneGroup %q", cephObjectStoreZone.Spec.ZoneGroup)
+		return "", cephObjectStoreZone.Spec.ZoneGroup, WaitForRequeueIfObjectStoreZoneGroupNotReady, err
 	}
 
 	return cephObjectStoreZoneGroup.Spec.Realm, cephObjectStoreZoneGroup.Name, reconcile.Result{}, nil
@@ -254,7 +254,7 @@ func (r *ReconcileObjectStoreZone) reconcileObjectStoreZoneGroup(cephObjectStore
 func (r *ReconcileObjectStoreZone) reconcileCephZoneGroup(cephObjectStoreZone *cephv1.CephObjectStoreZone, realmName string) (string, reconcile.Result, error) {
 	err := getCephZoneGroup(r.context, cephObjectStoreZone.Name, cephObjectStoreZone.Namespace, cephObjectStoreZone.Spec.ZoneGroup, realmName)
 	if err != nil {
-		return cephObjectStoreZone.Spec.ZoneGroup, WaitForRequeueIfObjectStoreZoneGroupNotReady, errors.Wrapf(err, "zone group %s does not exist in the Ceph cluster", cephObjectStoreZone.Spec.ZoneGroup)
+		return cephObjectStoreZone.Spec.ZoneGroup, WaitForRequeueIfObjectStoreZoneGroupNotReady, err
 	}
 
 	return cephObjectStoreZone.Spec.ZoneGroup, reconcile.Result{}, nil

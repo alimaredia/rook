@@ -108,7 +108,7 @@ func (r *ReconcileObjectStoreZoneGroup) Reconcile(request reconcile.Request) (re
 	// workaround because the rook logging mechanism is not compatible with the controller-runtime loggin interface
 	reconcileResponse, err := r.reconcile(request)
 	if err != nil {
-		logger.Errorf("failed to reconcile %v", err)
+		logger.Errorf("failed to reconcile: %v", err)
 	}
 
 	return reconcileResponse, err
@@ -236,7 +236,7 @@ func (r *ReconcileObjectStoreZoneGroup) reconcile(request reconcile.Request) (re
 func (r *ReconcileObjectStoreZoneGroup) reconcileCephZoneGroup(cephObjectStoreZoneGroup *cephv1.CephObjectStoreZoneGroup) (reconcile.Result, error) {
 	err := createCephZoneGroup(r.context, cephObjectStoreZoneGroup.Name, cephObjectStoreZoneGroup.Namespace, cephObjectStoreZoneGroup.Spec.Realm, cephObjectStoreZoneGroup.Spec.IsMaster)
 	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to create object store zonegroup %q", cephObjectStoreZoneGroup.Name)
+		return reconcile.Result{}, err
 	}
 
 	return reconcile.Result{}, nil
@@ -245,7 +245,7 @@ func (r *ReconcileObjectStoreZoneGroup) reconcileCephZoneGroup(cephObjectStoreZo
 func (r *ReconcileObjectStoreZoneGroup) reconcileObjectStoreRealm(cephObjectStoreZoneGroup *cephv1.CephObjectStoreZoneGroup) (string, reconcile.Result, error) {
 	cephObjectStoreRealm, err := getObjectStoreRealm(r.context.RookClientset.CephV1(), cephObjectStoreZoneGroup.Namespace, cephObjectStoreZoneGroup.Spec.Realm)
 	if err != nil {
-		return cephObjectStoreZoneGroup.Spec.Realm, WaitForRequeueIfObjectStoreRealmNotReady, errors.Wrapf(err, "failed to find CephObjectStoreRealm %q", cephObjectStoreZoneGroup.Spec.Realm)
+		return cephObjectStoreZoneGroup.Spec.Realm, WaitForRequeueIfObjectStoreRealmNotReady, err
 	}
 
 	return cephObjectStoreRealm.Name, reconcile.Result{}, nil
@@ -254,7 +254,7 @@ func (r *ReconcileObjectStoreZoneGroup) reconcileObjectStoreRealm(cephObjectStor
 func (r *ReconcileObjectStoreZoneGroup) reconcileCephRealm(cephObjectStoreZoneGroup *cephv1.CephObjectStoreZoneGroup) (string, reconcile.Result, error) {
 	err := getCephRealm(r.context, cephObjectStoreZoneGroup.Name, cephObjectStoreZoneGroup.Namespace, cephObjectStoreZoneGroup.Spec.Realm)
 	if err != nil {
-		return cephObjectStoreZoneGroup.Spec.Realm, WaitForRequeueIfObjectStoreRealmNotReady, errors.Wrapf(err, "realm %s does not exist in the Ceph cluster", cephObjectStoreZoneGroup.Spec.Realm)
+		return cephObjectStoreZoneGroup.Spec.Realm, WaitForRequeueIfObjectStoreRealmNotReady, err
 	}
 
 	return cephObjectStoreZoneGroup.Spec.Realm, reconcile.Result{}, nil

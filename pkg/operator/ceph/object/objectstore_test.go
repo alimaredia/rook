@@ -44,15 +44,16 @@ func TestReconcileRealm(t *testing.T) {
 	}
 
 	storeName := "myobject"
+	testNamespace := "test-namespace"
 	context := &clusterd.Context{Executor: executor}
 	objContext := NewContext(context, storeName, "mycluster")
 	// create the first realm, marked as default
 	spec := cephv1.ObjectStoreSpec{}
-	err := setMultisite(objContext, "1.2.3.4", spec, storeName, storeName, storeName)
+	err := setMultisite(objContext, spec, "1.2.3.4", storeName, storeName, storeName, testNamespace)
 	assert.Nil(t, err)
 
 	// create the second realm, not marked as default
-	err = setMultisite(objContext, "2.3.4.5", spec, storeName, storeName, storeName)
+	err = setMultisite(objContext, spec, "2.3.4.5", storeName, storeName, storeName, testNamespace)
 	assert.Nil(t, err)
 }
 

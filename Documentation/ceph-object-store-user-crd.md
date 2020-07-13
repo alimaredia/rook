@@ -20,6 +20,9 @@ metadata:
 spec:
   store: my-store
   displayName: my-display-name
+  realm: my-store
+  zoneGroup: my-store
+  zone: my-store
 ```
 
 ## Object Store User Settings

@@ -52,6 +52,9 @@ func (p *Provisioner) createCephUser(username string) (accKey string, secKey str
 	userConfig := cephObject.ObjectUser{
 		UserID:      username,
 		DisplayName: &p.cephUserName,
+		Realm:       &p.objectStoreName,
+		ZoneGroup:   &p.objectStoreName,
+		Zone:        &p.objectStoreName,
 	}
 
 	u, errCode, err := cephObject.CreateUser(p.objectContext, userConfig)

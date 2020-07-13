@@ -42,6 +42,9 @@ type ObjectUser struct {
 	Email       *string `json:"email"`
 	AccessKey   *string `json:"accessKey"`
 	SecretKey   *string `json:"secretKey"`
+	Realm       *string `json:"realm"`
+	ZoneGroup   *string `json:"zoneGroup"`
+	Zone        *string `json:"zone"`
 }
 
 // ListUsers lists the object pool users.
@@ -118,13 +121,16 @@ func CreateUser(c *Context, user ObjectUser) (*ObjectUser, int, error) {
 		"create",
 		"--uid", user.UserID,
 		"--display-name", *user.DisplayName,
+		"--rgw-realm", *user.Realm,
+		"--rgw-zonegroup", *user.ZoneGroup,
+		"--rgw-zone", *user.Zone,
 	}
 
 	if user.Email != nil {
 		args = append(args, "--email", *user.Email)
 	}
 
-	result, err := runAdminCommand(c, args...)
+	result, err := RunAdminCommandNoRealm(c, args...)
 	if err != nil {
 		if strings.Contains(result, "could not create user: unable to create user, user: ") {
 			return nil, ErrorCodeFileExists, errors.New("s3 user already exists")

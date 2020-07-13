@@ -220,6 +220,9 @@ func (c *bucketChecker) genUserConfig() ObjectUser {
 	return ObjectUser{
 		UserID:      userName,
 		DisplayName: &userName,
+		Realm:       &c.namespacedName.Name,
+		ZoneGroup:   &c.namespacedName.Name,
+		Zone:        &c.namespacedName.Name,
 	}
 }
 

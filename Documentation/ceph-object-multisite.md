@@ -41,13 +41,44 @@ object-multisite.yaml in the [examples](/cluster/examples/kubernetes/ceph/) dire
 kubectl create -f object-multisite.yaml
 ```
 
-The first zone group created in a realm is the master zone group. The first zone created in a zone group is the master zone.
+The first zone group created in a realm is the master zone group. The first zone created in a zone group is the master zone. When a non-master zone or non-master zone group is created, the zone group or zone is not in the Ceph Radosgw Multisite [Period](https://docs.ceph.com/docs/master/radosgw/multisite/) until an object-store is created in that zone (and zone group).
 
 The zone will create the pools for the object-store(s) that are in the zone to use.
 
 When one of the multisite CRs (realm, zone group, zone) is deleted the underlying ceph realm/zone group/zone is not deleted, neither are the pools created by the zone. This must be done manually (see next section).
 
 For more information on the multisite CRDs please read [ceph-object-multisite-crd](ceph-object-multisite-crd.md).
+
+# Pulling a Realm
+
+If an admin wants to sync data from another cluster, the admin needs to pull a realm on a Rook Ceph cluster from another Rook Ceph (or Ceph) cluster. 
+
+To begin doing this, the admin needs 2 pieces of information:
+
+1. An endpoint in the realm you are pulling from. This endpoint must be from the master zone in that realm, and resolvable from the new Rook Ceph cluster.
+2. The access key and secret key of the system user from the realm you're pulling from. When you create a ceph-object-realm a system user gets created for the realm with an access key and a secret key. These keys are exported as a kubernetes [secret](https://kubernetes.io/docs/concepts/configuration/secret/) called "$REALM_NAME-keys" (ex: realm-a-keys).
+
+To get these keys from the cluster the realm was originally created on, run:
+```console
+$ kubectl -n $ORIGINAL_CLUSTER_NAMESPACE get secrets realm-a-keys -o yaml > ~/realm-a-keys.yaml 
+```
+Edit the `realm-a-keys.yaml` file with the `namespace` that the new Rook Ceph cluster exists in.
+
+Then create a kubernetes secret on the pulling Rook Ceph cluster with the same secrets yaml file.
+```console
+$ kubectl create -f ~/realm-a-keys.yaml 
+```
+Once the admin knows the endpoint and the secret for the keys created, the admin should create:
+
+    - A [ceph-object-realm](/design/ceph/object/realm.md) referring to the realm on the other Ceph cluster, with an endpoint as described above.
+    - A [ceph-object-zone-group](/design/ceph/object/zone-group.md) matching the ceph-object-zone-group resource from the cluster the the realm was pulled from.
+    - A [ceph-object-zone](/design/ceph/object/zone.md) referring to the zone group created above.
+    - A [ceph-object-store](/design/ceph/object/store.md) referring to the new ceph-object-zone resource.
+
+object-multisite-pull-realm.yaml (with changes) in the [examples](/cluster/examples/kubernetes/ceph/) directory can be used to create the multisite CRDs.
+```console
+kubectl create -f object-multisite-pull-realm.yaml
+```
 
 # Multisite Cleanup
 

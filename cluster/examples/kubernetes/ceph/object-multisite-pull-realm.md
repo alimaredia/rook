@@ -1,0 +1,54 @@
+#################################################################################################################
+# Create an object store with settings for a test environment. Only a single OSD is required in this example.
+#  kubectl create -f object-multisite.yaml
+#################################################################################################################
+apiVersion: ceph.rook.io/v1
+kind: CephObjectRealm
+metadata:
+  name: realm-a
+  namespace: new-rook-ceph-namespace
+spec:
+  pull:
+    endpoint: http://10.103.133.16:80
+---
+apiVersion: ceph.rook.io/v1
+kind: CephObjectZoneGroup
+metadata:
+  name: zonegroup-a
+  namespace: new-rook-ceph-namespace
+spec:
+  realm: realm-a
+---
+apiVersion: ceph.rook.io/v1
+kind: CephObjectZone
+metadata:
+  name: zone-b
+  namespace: new-rook-ceph-namespace
+spec:
+  zoneGroup: zonegroup-a
+  metadataPool:
+    failureDomain: host
+    replicated:
+      size: 1
+      requireSafeReplicaSize: true
+  dataPool:
+    failureDomain: host
+    replicated:
+      size: 1
+      requireSafeReplicaSize: true
+    compressionMode: none
+---
+apiVersion: ceph.rook.io/v1
+kind: CephObjectStore
+metadata:
+  name: zone-b-multisite-store
+  namespace: new-rook-ceph-namespace
+spec:
+  preservePoolsOnDelete: true
+  gateway:
+    type: s3
+    port: 80
+    securePort:
+    instances: 1
+  zone:
+    name: zone-b

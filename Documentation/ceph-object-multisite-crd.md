@@ -20,6 +20,9 @@ kind: CephObjectRealm
 metadata:
   name: realm-a
   namespace: rook-ceph
+spec:
+#  pull:
+#    endpoint: http://10.2.105.133:80
 ```
 
 ### Object Realm Settings
@@ -28,6 +31,10 @@ metadata:
 
 * `name`: The name of the object realm to create
 * `namespace`: The namespace of the Rook cluster where the object realm is created.
+
+#### Spec
+
+* `pull`: This optional section is for the pulling the realm for another ceph cluster. The `endpoint` in this section is the endpoint in the realm from another ceph cluster you want to pull from. This endpoint must be in the master zone of the realm.
 
 ## Ceph Object Zone Group CRD
 

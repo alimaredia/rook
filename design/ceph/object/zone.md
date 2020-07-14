@@ -136,6 +136,15 @@ metadata:
   namespace: rook-ceph
 spec:
   zoneGroup: zone-group-b
+  metadataPool:
+    failureDomain: host
+    replicated:
+      size: 3
+  dataPool:
+    failureDomain: device
+    erasureCoded:
+      dataChunks: 6
+      codingChunks: 2
 ```
 
 ### Pools

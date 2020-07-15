@@ -306,13 +306,23 @@ func (r *ReconcileObjectStoreUser) createorUpdateCephUser(u *cephv1.CephObjectSt
 }
 
 func (r *ReconcileObjectStoreUser) isObjectStoreInitialized(u *cephv1.CephObjectStoreUser) error {
-	objContext := object.NewContext(r.context, u.Spec.Store, u.Namespace)
-	r.objContext = objContext
 
 	err := r.objectStoreInitialized(u)
 	if err != nil {
-		return errors.Wrap(err, "failed to detect if object store is initialized")
+		return errors.Wrapf(err, "failed to detect if object store %q is initialized", u.Spec.Store)
 	}
+
+	store, err := r.getObjectStore(u.Spec.Store)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get object store %q", u.Spec.Store)
+	}
+
+	objContext, err := object.NewMultisiteContext(r.context, store)
+	if err != nil {
+		return errors.Wrapf(err, "Multisite failed to set on object context for object store user")
+	}
+	r.objContext = objContext
+	r.objContext.Endpoint = store.Status.Info["endpoint"]
 
 	return nil
 }
@@ -388,7 +398,7 @@ func (r *ReconcileObjectStoreUser) reconcileCephUserSecret(cephObjectStoreUser *
 }
 
 func (r *ReconcileObjectStoreUser) objectStoreInitialized(cephObjectStoreUser *cephv1.CephObjectStoreUser) error {
-	err := r.getObjectStore(cephObjectStoreUser.Spec.Store)
+	_, err := r.getObjectStore(cephObjectStoreUser.Spec.Store)
 	if err != nil {
 		return err
 	}
@@ -416,26 +426,25 @@ func (r *ReconcileObjectStoreUser) objectStoreInitialized(cephObjectStoreUser *c
 	return errors.New("no rgw pod found")
 }
 
-func (r *ReconcileObjectStoreUser) getObjectStore(storeName string) error {
+func (r *ReconcileObjectStoreUser) getObjectStore(storeName string) (*cephv1.CephObjectStore, error) {
 	// check if CephObjectStore CR is created
 	objectStores := &cephv1.CephObjectStoreList{}
 	err := r.client.List(context.TODO(), objectStores)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
-			return errors.Wrapf(err, "CephObjectStore %q could not be found", storeName)
+			return nil, errors.Wrapf(err, "CephObjectStore %q could not be found", storeName)
 		}
-		return errors.Wrap(err, "failed to get CephObjectStore")
+		return nil, errors.Wrap(err, "failed to get CephObjectStore")
 	}
 
 	for _, store := range objectStores.Items {
 		if store.Name == storeName {
 			logger.Infof("CephObjectStore %q found", storeName)
-			r.objContext.Endpoint = store.Status.Info["endpoint"]
-			return nil
+			return &store, nil
 		}
 	}
 
-	return errors.Errorf("CephObjectStore %q could not be found", storeName)
+	return nil, errors.Errorf("CephObjectStore %q could not be found", storeName)
 }
 
 func (r *ReconcileObjectStoreUser) getRgwPodList(cephObjectStoreUser *cephv1.CephObjectStoreUser) (*corev1.PodList, error) {

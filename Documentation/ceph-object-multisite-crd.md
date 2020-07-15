@@ -34,7 +34,8 @@ spec:
 
 #### Spec
 
-* `pull`: This optional section is for the pulling the realm for another ceph cluster. The `endpoint` in this section is the endpoint in the realm from another ceph cluster you want to pull from. This endpoint must be in the master zone of the realm.
+* `pull`: This optional section is for the pulling the realm for another ceph cluster.
+  * `endpoint`: The endpoint in the realm from another ceph cluster you want to pull from. This endpoint must be in the master zone of the master zone group of the realm.
 
 ## Ceph Object Zone Group CRD
 
@@ -82,10 +83,10 @@ spec:
     replicated:
       size: 3
   dataPool:
-    failureDomain: device
+    failureDomain: osd
     erasureCoded:
-      dataChunks: 6
-      codingChunks: 2
+      dataChunks: 2
+      codingChunks: 1
 ```
 
 ### Object Zone Settings

@@ -2,12 +2,24 @@
 # Create an object store with settings for a test environment. Only a single OSD is required in this example.
 #  kubectl create -f object-multisite.yaml
 #################################################################################################################
+apiVersion: v1
+data:
+  # these keys should be the base64 encoded versions of the actual keys or copied from the realm's on the other cluster's secret
+  access-key: VzFjNFltMVdWRTFJWWxZelZWQT0=
+  secret-key: WVY1MFIxeExkbG84U3pKdlRseEZXVGR3T3k1U1dUSS9KaTFoUVE9PQ==
+kind: Secret
+metadata:
+  name: realm-a-keys
+  namespace: myceph
+type: kubernetes.io/rook
+---
 apiVersion: ceph.rook.io/v1
 kind: CephObjectRealm
 metadata:
   name: realm-a
   namespace: new-rook-ceph-namespace
 spec:
+  # This endpoint in this section needs is an endpoint from the master zone in the master zone group of realm-a. See object-multisite.md for more details.
   pull:
     endpoint: http://10.103.133.16:80
 ---
@@ -36,7 +48,6 @@ spec:
     replicated:
       size: 1
       requireSafeReplicaSize: true
-    compressionMode: none
 ---
 apiVersion: ceph.rook.io/v1
 kind: CephObjectStore
@@ -44,7 +55,6 @@ metadata:
   name: zone-b-multisite-store
   namespace: new-rook-ceph-namespace
 spec:
-  preservePoolsOnDelete: true
   gateway:
     type: s3
     port: 80

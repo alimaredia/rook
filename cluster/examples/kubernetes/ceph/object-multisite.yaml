@@ -7,9 +7,6 @@ kind: CephObjectRealm
 metadata:
   name: realm-a
   namespace: rook-ceph
-#spec:
-#  pull:
-#    endpoint: http://10.103.133.16:80
 ---
 apiVersion: ceph.rook.io/v1
 kind: CephObjectZoneGroup
@@ -44,7 +41,6 @@ metadata:
   name: multisite-store
   namespace: rook-ceph
 spec:
-  preservePoolsOnDelete: true
   gateway:
     type: s3
     port: 80

@@ -8,6 +8,7 @@ kind: CephObjectRealm
 metadata:
   name: realm-a
   namespace: rook-ceph
+# This endpoint in this section needs is an endpoint from the master zone  in the master zone group of realm-a. See object-multisite.md for more details.
 #spec:
 #  pull:
 #    endpoint: http://10.103.133.16:80

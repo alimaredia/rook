@@ -403,7 +403,17 @@ func (p *Provisioner) setObjectContext() error {
 	} else if p.objectStoreNamespace == "" {
 		return errors.Errorf(msg, "namespace")
 	}
-	p.objectContext = cephObject.NewContext(p.context, p.objectStoreName, p.objectStoreNamespace)
+
+	store, err := getObjectStore(p.context.RookClientset.CephV1(), p.objectStoreNamespace, p.objectStoreName)
+	if err != nil {
+		return err
+	}
+
+	p.objectContext, err = cephObject.NewMultisiteContext(p.context, store)
+	if err != nil {
+		return errors.Wrapf(err, "Multisite failed to set on provisioner's objectContext")
+	}
+
 	p.objectContext.RunAsUser = p.RunRgwCmdAsUser
 
 	return nil

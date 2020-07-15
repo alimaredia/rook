@@ -210,7 +210,7 @@ func (r *ReconcileObjectZone) createCephZone(zone *cephv1.CephObjectZone, realmN
 	objContext := object.NewContext(r.context, zone.Name, zone.Namespace)
 
 	// get zone group to see if master zone exists yet
-	output, err := object.RunAdminCommandNoRealm(objContext, "zonegroup", "get", realmArg, zoneGroupArg)
+	output, err := object.RunAdminCommandNoMultisite(objContext, "zonegroup", "get", realmArg, zoneGroupArg)
 	if err != nil {
 		if code, ok := exec.ExitStatus(err); ok && code == int(syscall.ENOENT) {
 			return reconcile.Result{}, errors.Wrapf(err, "ceph zone group %q not found", zone.Spec.ZoneGroup)
@@ -231,7 +231,7 @@ func (r *ReconcileObjectZone) createCephZone(zone *cephv1.CephObjectZone, realmN
 	}
 
 	// create zone
-	_, err = object.RunAdminCommandNoRealm(objContext, "zone", "get", realmArg, zoneGroupArg, zoneArg)
+	_, err = object.RunAdminCommandNoMultisite(objContext, "zone", "get", realmArg, zoneGroupArg, zoneArg)
 	if err != nil {
 		if code, ok := exec.ExitStatus(err); ok && code == int(syscall.ENOENT) {
 			logger.Debugf("ceph zone %q not found, running `radosgw-admin zone create`", zone.Name)
@@ -243,9 +243,9 @@ func (r *ReconcileObjectZone) createCephZone(zone *cephv1.CephObjectZone, realmN
 			if zoneIsMaster {
 				// master zone does not exist yet for zone group
 				masterArg := "--master"
-				_, err = object.RunAdminCommandNoRealm(objContext, "zone", "create", realmArg, zoneGroupArg, zoneArg, accessKeyArg, secretKeyArg, masterArg)
+				_, err = object.RunAdminCommandNoMultisite(objContext, "zone", "create", realmArg, zoneGroupArg, zoneArg, accessKeyArg, secretKeyArg, masterArg)
 			} else {
-				_, err = object.RunAdminCommandNoRealm(objContext, "zone", "create", realmArg, zoneGroupArg, zoneArg, accessKeyArg, secretKeyArg)
+				_, err = object.RunAdminCommandNoMultisite(objContext, "zone", "create", realmArg, zoneGroupArg, zoneArg, accessKeyArg, secretKeyArg)
 			}
 
 			if err != nil {
@@ -279,7 +279,7 @@ func (r *ReconcileObjectZone) reconcileCephZoneGroup(zone *cephv1.CephObjectZone
 	zoneGroupArg := fmt.Sprintf("--rgw-zonegroup=%s", zone.Spec.ZoneGroup)
 	objContext := object.NewContext(r.context, zone.Name, zone.Namespace)
 
-	_, err := object.RunAdminCommandNoRealm(objContext, "zonegroup", "get", realmArg, zoneGroupArg)
+	_, err := object.RunAdminCommandNoMultisite(objContext, "zonegroup", "get", realmArg, zoneGroupArg)
 	if err != nil {
 		if code, ok := exec.ExitStatus(err); ok && code == int(syscall.ENOENT) {
 			return waitForRequeueIfObjectZoneGroupNotReady, errors.Wrapf(err, "ceph zone group %q not found", zone.Spec.ZoneGroup)

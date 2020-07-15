@@ -346,6 +346,9 @@ func (r *ReconcileCephObjectStore) reconcileCreateObjectStore(cephObjectStore *c
 		if err != nil {
 			return reconcileResponse, err
 		}
+		objContext.Realm = realmName
+		objContext.ZoneGroup = zoneGroupName
+		objContext.Zone = zoneName
 
 		// Reconcile Ceph Zone if Multisite
 		if cephObjectStore.Spec.IsMultisite() {
@@ -399,7 +402,7 @@ func (r *ReconcileCephObjectStore) reconcileCephZone(store *cephv1.CephObjectSto
 	zoneArg := fmt.Sprintf("--rgw-zone=%s", store.Spec.Zone.Name)
 	objContext := NewContext(r.context, store.Name, store.Namespace)
 
-	_, err := RunAdminCommandNoRealm(objContext, "zone", "get", realmArg, zoneGroupArg, zoneArg)
+	_, err := RunAdminCommandNoMultisite(objContext, "zone", "get", realmArg, zoneGroupArg, zoneArg)
 	if err != nil {
 		if code, ok := exec.ExitStatus(err); ok && code == int(syscall.ENOENT) {
 			return waitForRequeueIfObjectStoreNotReady, errors.Wrapf(err, "ceph zone %q not found", store.Spec.Zone.Name)

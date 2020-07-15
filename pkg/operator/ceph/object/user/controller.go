@@ -310,8 +310,20 @@ func (r *ReconcileObjectStoreUser) isObjectStoreInitialized(u *cephv1.CephObject
 
 	err := r.objectStoreInitialized(u)
 	if err != nil {
-		return errors.Wrap(err, "failed to detect if object store is initialized")
+		return errors.Wrapf(err, "failed to detect if object store is initialized")
 	}
+
+	store, err := r.context.RookClientset.CephV1().CephObjectStores(u.Namespace).Get(u.Spec.Store, metav1.GetOptions{})
+	if err != nil {
+		return errors.Wrapf(err, "failed to get object store %q", u.Spec.Store)
+	}
+	realmName, zoneGroupName, zoneName, err := object.GetMultisiteForObjectStore(r.context, store)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get realm/zone group/zone for object store %q", u.Spec.Store)
+	}
+	r.objContext.Realm = realmName
+	r.objContext.ZoneGroup = zoneGroupName
+	r.objContext.Zone = zoneName
 
 	return nil
 }

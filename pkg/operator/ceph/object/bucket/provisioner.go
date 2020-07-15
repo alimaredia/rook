@@ -30,6 +30,7 @@ import (
 	"github.com/rook/rook/pkg/clusterd"
 	cephutil "github.com/rook/rook/pkg/daemon/ceph/util"
 	cephObject "github.com/rook/rook/pkg/operator/ceph/object"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type Provisioner struct {
@@ -404,6 +405,18 @@ func (p *Provisioner) setObjectContext() error {
 		return errors.Errorf(msg, "namespace")
 	}
 	p.objectContext = cephObject.NewContext(p.context, p.objectStoreName, p.objectStoreNamespace)
+
+	store, err := p.context.RookClientset.CephV1().CephObjectStores(p.objectStoreNamespace).Get(p.objectStoreName, metav1.GetOptions{})
+	if err != nil {
+		return errors.Wrapf(err, "failed to get object store %q", p.objectStoreName)
+	}
+	realmName, zoneGroupName, zoneName, err := cephObject.GetMultisiteForObjectStore(p.context, store)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get realm/zone group/zone for object store %q", p.objectStoreName)
+	}
+	p.objectContext.Realm = realmName
+	p.objectContext.ZoneGroup = zoneGroupName
+	p.objectContext.Zone = zoneName
 	p.objectContext.RunAsUser = p.RunRgwCmdAsUser
 
 	return nil

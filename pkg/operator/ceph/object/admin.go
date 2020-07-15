@@ -31,6 +31,9 @@ type Context struct {
 	RunAsUser   string
 	UID         string
 	Endpoint    string
+	Realm       string
+	ZoneGroup   string
+	Zone        string
 }
 
 // NewContext creates a new object store context.
@@ -38,7 +41,7 @@ func NewContext(context *clusterd.Context, name, clusterName string) *Context {
 	return &Context{Context: context, Name: name, ClusterName: clusterName, RunAsUser: client.AdminUsername}
 }
 
-func RunAdminCommandNoRealm(c *Context, args ...string) (string, error) {
+func RunAdminCommandNoMultisite(c *Context, args ...string) (string, error) {
 	command, args := client.FinalizeCephCommandArgs("radosgw-admin", args, c.Context.ConfigDir, c.ClusterName, c.RunAsUser)
 
 	// start the rgw admin command
@@ -60,12 +63,13 @@ func runAdminCommand(c *Context, args ...string) (string, error) {
 	// This is not perfect though since "client.admin" is somehow supported...
 	if c.Name != "" && c.RunAsUser == client.AdminUsername {
 		options := []string{
-			fmt.Sprintf("--rgw-realm=%s", c.Name),
-			fmt.Sprintf("--rgw-zonegroup=%s", c.Name),
+			fmt.Sprintf("--rgw-realm=%s", c.Realm),
+			fmt.Sprintf("--rgw-zonegroup=%s", c.ZoneGroup),
+			fmt.Sprintf("--rgw-zone=%s", c.Zone),
 		}
 
-		return RunAdminCommandNoRealm(c, append(args, options...)...)
+		return RunAdminCommandNoMultisite(c, append(args, options...)...)
 	}
 
-	return RunAdminCommandNoRealm(c, args...)
+	return RunAdminCommandNoMultisite(c, args...)
 }

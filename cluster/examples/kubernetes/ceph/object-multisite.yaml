@@ -44,7 +44,6 @@ metadata:
   name: multisite-store
   namespace: rook-ceph
 spec:
-  preservePoolsOnDelete: true
   gateway:
     type: s3
     port: 80

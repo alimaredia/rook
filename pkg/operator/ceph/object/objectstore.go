@@ -199,11 +199,11 @@ func checkZoneIsMaster(objContext *Context) (bool, error) {
 	zoneGroupArg := fmt.Sprintf("--rgw-zonegroup=%s", objContext.ZoneGroup)
 	zoneArg := fmt.Sprintf("--rgw-zone=%s", objContext.Zone)
 
-	zoneGroupOutput, err := RunAdminCommandNoMultisite(objContext, "zonegroup", "get", realmArg, zoneGroupArg)
+	zoneGroupJson, err := RunAdminCommandNoMultisite(objContext, "zonegroup", "get", realmArg, zoneGroupArg)
 	if err != nil {
 		return false, errors.Wrap(err, "failed to get rgw zone group")
 	}
-	zoneGroupJson, err := DecodeZoneGroupConfig(zoneGroupOutput)
+	zoneGroupOutput, err := DecodeZoneGroupConfig(zoneGroupJson)
 	if err != nil {
 		return false, errors.Wrap(err, "failed to parse zonegroup get json")
 	}
@@ -219,7 +219,7 @@ func checkZoneIsMaster(objContext *Context) (bool, error) {
 	}
 	logger.Debugf("got zone ID for zone %v", objContext.Zone)
 
-	if zoneID == zoneGroupJson.MasterZoneID {
+	if zoneID == zoneGroupOutput.MasterZoneID {
 		logger.Debugf("zone is master")
 		return true, nil
 	}
@@ -320,43 +320,54 @@ func getZoneEndpoints(objContext *Context, serviceEndpoint string) ([]string, er
 func createMultisite(objContext *Context, endpointArg string) error {
 	logger.Debugf("creating realm, zone group, zone for object-store %v", objContext.Name)
 
-	realmArg := fmt.Sprintf("--rgw-realm=%s", objContext.Name)
-	zoneGroupArg := fmt.Sprintf("--rgw-zonegroup=%s", objContext.Name)
+	realmArg := fmt.Sprintf("--rgw-realm=%s", objContext.Realm)
+	zoneGroupArg := fmt.Sprintf("--rgw-zonegroup=%s", objContext.ZoneGroup)
 
 	updatePeriod := false
 	// create the realm if it doesn't exist yet
 	output, err := RunAdminCommandNoMultisite(objContext, "realm", "get", realmArg)
 	if err != nil {
-		updatePeriod = true
-		output, err = RunAdminCommandNoMultisite(objContext, "realm", "create", realmArg)
-		if err != nil {
-			return errors.Wrapf(err, "failed to create rgw realm %q for reason: %q", objContext.Name, output)
+		if code, ok := exec.ExitStatus(err); ok && code == int(syscall.ENOENT) {
+			updatePeriod = true
+			output, err = RunAdminCommandNoMultisite(objContext, "realm", "create", realmArg)
+			if err != nil {
+				return errors.Wrapf(err, "failed to create ceph realm %q, for reason %q", objContext.ZoneGroup, output)
+			}
+			logger.Debugf("created realm %v", objContext.Realm)
+		} else {
+			return errors.Wrapf(err, "radosgw-admin realm get failed with code %d, for reason %q", code, output)
 		}
 	}
-	logger.Debugf("created realm %v", objContext.Name)
 
 	// create the zonegroup if it doesn't exist yet
 	output, err = RunAdminCommandNoMultisite(objContext, "zonegroup", "get", realmArg, zoneGroupArg)
 	if err != nil {
-		updatePeriod = true
-		output, err = RunAdminCommandNoMultisite(objContext, "zonegroup", "create", "--master", endpointArg, realmArg, zoneGroupArg)
-		if err != nil {
-			return errors.Wrapf(err, "failed to create rgw zonegroup for %q reason: %q", objContext.Name, output)
+		if code, ok := exec.ExitStatus(err); ok && code == int(syscall.ENOENT) {
+			updatePeriod = true
+			output, err = RunAdminCommandNoMultisite(objContext, "zonegroup", "create", "--master", realmArg, zoneGroupArg, endpointArg)
+			if err != nil {
+				return errors.Wrapf(err, "failed to create ceph zone group %q, for reason %q", objContext.ZoneGroup, output)
+			}
+			logger.Debugf("created zone group %v", objContext.ZoneGroup)
+		} else {
+			return errors.Wrapf(err, "radosgw-admin zonegroup get failed with code %d, for reason %q", code, output)
 		}
 	}
-	logger.Debugf("created zone group %v", objContext.Name)
 
 	// create the zone if it doesn't exist yet
 	output, err = runAdminCommand(objContext, "zone", "get")
 	if err != nil {
-		updatePeriod = true
-		output, err = runAdminCommand(objContext, "zone", "create", "--master", endpointArg)
-		if err != nil {
-			return errors.Wrapf(err, "failed to create rgw zone for %q reason: %q", objContext.Name, output)
+		if code, ok := exec.ExitStatus(err); ok && code == int(syscall.ENOENT) {
+			updatePeriod = true
+			output, err = runAdminCommand(objContext, "zone", "create", "--master", endpointArg)
+			if err != nil {
+				return errors.Wrapf(err, "failed to create ceph zone %q, for reason %q", objContext.Zone, output)
+			}
+			logger.Debugf("created zone %v", objContext.Zone)
+		} else {
+			return errors.Wrapf(err, "radosgw-admin zone get failed with code %d, for reason %q", code, output)
 		}
 	}
-
-	logger.Debugf("created zone %v", objContext.Name)
 
 	if updatePeriod {
 		// the period will help notify other zones of changes if there are multi-zones
@@ -364,10 +375,10 @@ func createMultisite(objContext *Context, endpointArg string) error {
 		if err != nil {
 			return errors.Wrap(err, "failed to update period")
 		}
-		logger.Debugf("updated period for realm %v", objContext.Name)
+		logger.Debugf("updated period for realm %v", objContext.Realm)
 	}
 
-	logger.Infof("Multisite for object-store: realm=%s, zonegroup=%s, zone=%s", objContext.Name, objContext.Name, objContext.Name)
+	logger.Infof("Multisite for object-store: realm=%s, zonegroup=%s, zone=%s", objContext.Realm, objContext.ZoneGroup, objContext.Zone)
 
 	return nil
 }
@@ -430,26 +441,27 @@ func createSystemUser(objContext *Context, namespace string) error {
 	zoneArg := fmt.Sprintf("--rgw-zone=%s", objContext.Zone)
 
 	output, err := RunAdminCommandNoMultisite(objContext, "user", "info", uidArg)
-	if err != nil {
-		if code, ok := exec.ExitStatus(err); ok && code == int(syscall.EINVAL) {
-			logger.Debugf("realm system user %q not found, running `radosgw-admin user create`", uid)
-			accessKeyArg, secretKeyArg, err := GetRealmKeyArgs(objContext.Context, objContext.Realm, namespace)
-			if err != nil {
-				return errors.Wrap(err, "failed to get keys for realm")
-			}
-			logger.Debugf("found keys to create realm system user %v", uid)
-			systemArg := "--system"
-			displayNameArg := fmt.Sprintf("--display-name=%s.user", objContext.Realm)
-			output, err = RunAdminCommandNoMultisite(objContext, "user", "create", realmArg, zoneGroupArg, zoneArg, uidArg, displayNameArg, accessKeyArg, secretKeyArg, systemArg)
-			if err != nil {
-				return errors.Wrapf(err, "failed to create realm system user %q for reason: %q", uid, output)
-			}
-			logger.Debugf("created realm system user %v", uid)
-		} else {
-			return errors.Wrapf(err, "radosgw-admin user info for system user failed with code %d and output %q", code, output)
-		}
-	} else {
+	if err == nil {
 		logger.Debugf("realm system user %q has already been created", uid)
+		return nil
+	}
+
+	if code, ok := exec.ExitStatus(err); ok && code == int(syscall.EINVAL) {
+		logger.Debugf("realm system user %q not found, running `radosgw-admin user create`", uid)
+		accessKeyArg, secretKeyArg, err := GetRealmKeyArgs(objContext.Context, objContext.Realm, namespace)
+		if err != nil {
+			return errors.Wrap(err, "failed to get keys for realm")
+		}
+		logger.Debugf("found keys to create realm system user %v", uid)
+		systemArg := "--system"
+		displayNameArg := fmt.Sprintf("--display-name=%s.user", objContext.Realm)
+		output, err = RunAdminCommandNoMultisite(objContext, "user", "create", realmArg, zoneGroupArg, zoneArg, uidArg, displayNameArg, accessKeyArg, secretKeyArg, systemArg)
+		if err != nil {
+			return errors.Wrapf(err, "failed to create realm system user %q for reason: %q", uid, output)
+		}
+		logger.Debugf("created realm system user %v", uid)
+	} else {
+		return errors.Wrapf(err, "radosgw-admin user info for system user failed with code %d and output %q", code, output)
 	}
 
 	return nil

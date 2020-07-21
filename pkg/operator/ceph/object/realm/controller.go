@@ -300,11 +300,6 @@ func validateRealmCR(u *cephv1.CephObjectRealm) error {
 	if u.Namespace == "" {
 		return errors.New("missing namespace")
 	}
-	if u.Spec.IsPullRealm() {
-		if u.Spec.Pull.Endpoint == "" {
-			return errors.New("missing endpoint for pulling realm")
-		}
-	}
 	return nil
 }
 

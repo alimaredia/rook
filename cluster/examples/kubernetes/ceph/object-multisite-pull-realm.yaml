@@ -4,6 +4,7 @@
 #################################################################################################################
 apiVersion: v1
 data:
+  # TODO: Replace with keys for your cluster
   # these keys should be the base64 encoded versions of the actual keys or copied from the realm's on the other cluster's secret
   access-key: VzFjNFltMVdWRTFJWWxZelZWQT0=
   secret-key: WVY1MFIxeExkbG84U3pKdlRseEZXVGR3T3k1U1dUSS9KaTFoUVE9PQ==

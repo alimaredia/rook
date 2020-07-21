@@ -179,14 +179,6 @@ func (r *ReconcileObjectZone) reconcile(request reconcile.Request) (reconcile.Re
 		return reconcileResponse, err
 	}
 
-	// RECONCILE POOLS
-	logger.Info("reconciling object zone pools")
-	objContext := object.NewContext(r.context, cephObjectZone.Name, cephObjectZone.Namespace)
-	err = object.CreatePools(objContext, cephObjectZone.Spec.MetadataPool, cephObjectZone.Spec.DataPool)
-	if err != nil {
-		return r.setFailedStatus(request.NamespacedName, "failed to create zone pools", err)
-	}
-
 	// Create Ceph Zone
 	reconcileResponse, err = r.createCephZone(cephObjectZone, realmName)
 	if err != nil {
@@ -225,39 +217,63 @@ func (r *ReconcileObjectZone) createCephZone(zone *cephv1.CephObjectZone, realmN
 		return reconcile.Result{}, errors.Wrap(err, "failed to parse `radosgw-admin zonegroup get` output")
 	}
 
-	zoneIsMaster := false
-	if zoneGroupJson.MasterZoneID == "" {
-		zoneIsMaster = true
-	}
-
 	// create zone
 	_, err = object.RunAdminCommandNoMultisite(objContext, "zone", "get", realmArg, zoneGroupArg, zoneArg)
-	if err != nil {
-		if code, ok := exec.ExitStatus(err); ok && code == int(syscall.ENOENT) {
-			logger.Debugf("ceph zone %q not found, running `radosgw-admin zone create`", zone.Name)
-			accessKeyArg, secretKeyArg, err := object.GetRealmKeyArgs(r.context, realmName, zone.Namespace)
-			if err != nil {
-				return reconcile.Result{}, errors.Wrap(err, "failed to get keys for realm")
-			}
+	if err == nil {
+		logger.Debugf("ceph zone %q already exists, new zone and pools will not be created", zone.Name)
+		return reconcile.Result{}, nil
+	}
 
-			if zoneIsMaster {
-				// master zone does not exist yet for zone group
-				masterArg := "--master"
-				_, err = object.RunAdminCommandNoMultisite(objContext, "zone", "create", realmArg, zoneGroupArg, zoneArg, accessKeyArg, secretKeyArg, masterArg)
-			} else {
-				_, err = object.RunAdminCommandNoMultisite(objContext, "zone", "create", realmArg, zoneGroupArg, zoneArg, accessKeyArg, secretKeyArg)
-			}
+	if code, ok := exec.ExitStatus(err); ok && code == int(syscall.ENOENT) {
+		logger.Debugf("ceph zone %q not found, running `radosgw-admin zone create`", zone.Name)
 
-			if err != nil {
-				return reconcile.Result{}, errors.Wrapf(err, "failed to create ceph zone %q", zone.Name)
-			}
-
-		} else {
-			return reconcile.Result{}, errors.Wrapf(err, "radosgw-admin zone get failed with code %d", code)
+		zoneIsMaster := false
+		if zoneGroupJson.MasterZoneID == "" {
+			zoneIsMaster = true
 		}
+
+		err = r.createPoolsAndZone(objContext, zone, realmName, zoneIsMaster)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+	} else {
+		return reconcile.Result{}, errors.Wrapf(err, "radosgw-admin zone get failed with code %d for reason %q", code, output)
 	}
 
 	return reconcile.Result{}, nil
+}
+
+func (r *ReconcileObjectZone) createPoolsAndZone(objContext *object.Context, zone *cephv1.CephObjectZone, realmName string, zoneIsMaster bool) error {
+	// create pools for zone
+	logger.Debugf("creating pools ceph zone %q", zone.Name)
+	realmArg := fmt.Sprintf("--rgw-realm=%s", realmName)
+	zoneGroupArg := fmt.Sprintf("--rgw-zonegroup=%s", zone.Spec.ZoneGroup)
+	zoneArg := fmt.Sprintf("--rgw-zone=%s", zone.Name)
+
+	err := object.CreatePools(objContext, zone.Spec.MetadataPool, zone.Spec.DataPool)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create pools for zone %v", zone.Name)
+	}
+	logger.Debugf("created pools ceph zone %q", zone.Name)
+
+	accessKeyArg, secretKeyArg, err := object.GetRealmKeyArgs(r.context, realmName, zone.Namespace)
+	if err != nil {
+		return errors.Wrap(err, "failed to get keys for realm")
+	}
+	args := []string{"zone", "create", realmArg, zoneGroupArg, zoneArg, accessKeyArg, secretKeyArg}
+
+	if zoneIsMaster {
+		// master zone does not exist yet for zone group
+		args = append(args, "--master")
+	}
+
+	output, err := object.RunAdminCommandNoMultisite(objContext, args...)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create ceph zone %q for reason %q", zone.Name, output)
+	}
+	logger.Debugf("created ceph zone %q", zone.Name)
+
+	return nil
 }
 
 func (r *ReconcileObjectZone) reconcileObjectZoneGroup(zone *cephv1.CephObjectZone) (string, reconcile.Result, error) {

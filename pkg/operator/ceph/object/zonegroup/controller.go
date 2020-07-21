@@ -220,24 +220,31 @@ func (r *ReconcileObjectZoneGroup) createCephZoneGroup(zoneGroup *cephv1.CephObj
 	}
 
 	// create zone group
-	_, err = object.RunAdminCommandNoMultisite(objContext, "zonegroup", "get", realmArg, zoneGroupArg)
-	if err != nil {
-		if code, ok := exec.ExitStatus(err); ok && code == int(syscall.ENOENT) {
-			logger.Debugf("ceph zone group %q not found, running `radosgw-admin zonegroup create`", zoneGroup.Name)
+	output, err = object.RunAdminCommandNoMultisite(objContext, "zonegroup", "get", realmArg, zoneGroupArg)
+	if err == nil {
+		return reconcile.Result{}, nil
+	}
 
-			if zoneGroupIsMaster {
-				masterArg := "--master"
-				_, err = object.RunAdminCommandNoMultisite(objContext, "zonegroup", "create", realmArg, zoneGroupArg, masterArg)
-			} else {
-				_, err = object.RunAdminCommandNoMultisite(objContext, "zonegroup", "create", realmArg, zoneGroupArg)
-			}
-
-			if err != nil {
-				return reconcile.Result{}, errors.Wrapf(err, "failed to create ceph zone group %q", zoneGroup.Name)
-			}
-		} else {
-			return reconcile.Result{}, errors.Wrapf(err, "radosgw-admin zonegroup get failed with code %d", code)
+	if code, ok := exec.ExitStatus(err); ok && code == int(syscall.ENOENT) {
+		logger.Debugf("ceph zone group %q not found, running `radosgw-admin zonegroup create`", zoneGroup.Name)
+		args := []string{
+			"zonegroup",
+			"create",
+			realmArg,
+			zoneGroupArg,
 		}
+
+		if zoneGroupIsMaster {
+			// master zone group does not exist yet for realm
+			args = append(args, "--master")
+		}
+
+		output, err = object.RunAdminCommandNoMultisite(objContext, args...)
+		if err != nil {
+			return reconcile.Result{}, errors.Wrapf(err, "failed to create ceph zone group %q for reason %q", zoneGroup.Name, output)
+		}
+	} else {
+		return reconcile.Result{}, errors.Wrapf(err, "radosgw-admin zonegroup get failed with code %d for reason %q", code, output)
 	}
 
 	return reconcile.Result{}, nil

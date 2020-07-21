@@ -193,8 +193,8 @@ func (r *ReconcileObjectStoreUser) reconcile(request reconcile.Request) (reconci
 	}
 	r.clusterInfo = clusterInfo
 
-	// validate isObjectStoreInitialized
-	err = r.isObjectStoreInitialized(cephObjectStoreUser)
+	// validate initializeObjectStoreContext
+	err = r.initializeObjectStoreContext(cephObjectStoreUser)
 	if err != nil {
 		if !cephObjectStoreUser.GetDeletionTimestamp().IsZero() {
 			// Remove finalizer
@@ -305,7 +305,7 @@ func (r *ReconcileObjectStoreUser) createorUpdateCephUser(u *cephv1.CephObjectSt
 	return nil
 }
 
-func (r *ReconcileObjectStoreUser) isObjectStoreInitialized(u *cephv1.CephObjectStoreUser) error {
+func (r *ReconcileObjectStoreUser) initializeObjectStoreContext(u *cephv1.CephObjectStoreUser) error {
 
 	err := r.objectStoreInitialized(u)
 	if err != nil {

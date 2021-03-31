@@ -129,6 +129,12 @@ func (suite *SmokeSuite) TestObjectStorage_SmokeTest() {
 	}
 }
 
+func (suite *SmokeSuite) TestObjectMultisite_SmokeTest() {
+	if !utils.IsPlatformOpenShift() {
+		runObjectMultisiteE2ETest(suite.helper, suite.k8sh, suite.Suite, suite.namespace)
+	}
+}
+
 // Test to make sure all rook components are installed and Running
 func (suite *SmokeSuite) TestARookClusterInstallation_SmokeTest() {
 	checkIfRookClusterIsInstalled(suite.Suite, suite.k8sh, installer.SystemNamespace(suite.namespace), suite.namespace, 3)
